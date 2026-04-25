@@ -4,6 +4,8 @@ spring:
   threads:
     virtual:
       enabled: true
+  config:
+    import: optional:/Users/mac/Downloads/savings-project/.env[.properties]
   datasource:
     url: ${DATABASE_URL}
     username: ${DATABASE_USERNAME}
@@ -17,8 +19,32 @@ spring:
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: create-drop
     show-sql: false
+
+  kafka:
+    consumer:
+      bootstrap-servers: localhost:9092
+      group-id: savings-group
+      auto-offset-reset: earliest
+    producer:
+      bootstrap-servers: localhost:9092
+    listener:
+      type: single
+
+  mail:
+    host: smtp.mail.yahoo.com
+    port: 465
+    username: ${EMAIL_USERNAME}
+    password: ${EMAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          ssl:
+            enable: true
+            socketFactory:
+              class: javax.net.ssl.SSLSocketFactory
 
 management:
   endpoints:
@@ -44,3 +70,15 @@ logging:
   level:
     root: INFO
     com.emmanuelandsamuel: TRACE
+
+email:
+  username: ${EMAIL_USERNAME}
+
+outbox:
+  poll:
+    pending-interval-ms: 5000
+    retry-interval-ms: 60000
+    cleanup-interval-ms: 3600000
+    batch-size: 50
+    backoff-multiplier-seconds: 30
+    cleanup-retention-hours: 24

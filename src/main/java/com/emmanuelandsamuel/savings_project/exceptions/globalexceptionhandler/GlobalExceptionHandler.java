@@ -51,7 +51,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
         log.error("Application error: {}", ex.getMessage(), ex);
 
-        ApiResponse<String> apiResponse = ApiResponse.error(ex.getMessage());
+        ApiResponse<String> apiResponse = ApiResponse.error("An error occurred while processing your request.");
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(apiResponse);
     }

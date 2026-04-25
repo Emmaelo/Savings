@@ -8,13 +8,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(
-        name = "group_members",
-        indexes = {
-                @Index(name = "idx_group_name", columnList = "name"),
-                @Index(name = "idx_group_code", columnList = "groupCode")
-        }
-)
+@Table(name = "group_members")
 @Getter
 @Setter
 @AllArgsConstructor
