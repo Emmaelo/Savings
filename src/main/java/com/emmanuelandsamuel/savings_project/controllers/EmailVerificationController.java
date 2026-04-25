@@ -22,6 +22,10 @@ import static com.emmanuelandsamuel.savings_project.utilities.AppExtensions.IDEM
 @Tag(name = "Email verification", description = "APIs for email verification")
 public class EmailVerificationController {
 
+    /*
+    Use this url to lauch swagger ui: http://localhost:8080/swagger-ui/index.html
+     */
+
     private final EmailVerificationService emailVerificationService;
 
     @Operation(summary = "Send verification mail", description = "Sends a verification email to the specified email address. The email contains a verification code that the user can use to verify their email address.")
