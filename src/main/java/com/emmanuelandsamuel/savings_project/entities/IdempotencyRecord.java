@@ -1,5 +1,6 @@
 package com.emmanuelandsamuel.savings_project.entities;
 
+import com.emmanuelandsamuel.savings_project.enumerations.IdempotencyStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -44,8 +45,13 @@ public class IdempotencyRecord extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String responseBody;
 
+    @Enumerated(EnumType.STRING)
+    private IdempotencyStatus idempotencyStatus;
+
     @Column(nullable = false)
     private LocalDateTime expiresAt;
+
+    private LocalDateTime resolvedAt;
 
     @PrePersist
     public void prePersist() {
