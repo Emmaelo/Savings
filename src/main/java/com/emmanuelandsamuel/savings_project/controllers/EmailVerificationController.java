@@ -33,7 +33,7 @@ public class EmailVerificationController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Verification email sent successfully",
                     content = @Content(schema = @Schema(implementation = ApiResponse.class))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid request data",
-                    content = @Content(schema = @Schema()))
+                    content = @Content(schema = @Schema(implementation = ApiResponse.class)))
     })
     @PostMapping("/send-verification-code")
     public ResponseEntity<ApiResponse<String>> sendVerificationEmail(@RequestHeader(IDEMPOTENCY_KEY_HEADER) String idempotencyKey,
@@ -59,7 +59,7 @@ public class EmailVerificationController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Verification successful",
                     content = @Content(schema = @Schema(implementation = ApiResponse.class))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid request data",
-                    content = @Content(schema = @Schema()))
+                    content = @Content(schema = @Schema(implementation = ApiResponse.class)))
     })
     @PostMapping("/verify-verification-code")
     public ResponseEntity<ApiResponse<String>> verifyVerificationCode(@Valid @RequestBody EmailVerificationRequest emailVerificationRequest) {

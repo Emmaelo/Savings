@@ -1,6 +1,7 @@
 package com.emmanuelandsamuel.savings_project.services.interfaces;
 
 import com.emmanuelandsamuel.savings_project.dtos.requests.IdempotencyKeyCheckRequest;
+import com.emmanuelandsamuel.savings_project.dtos.requests.MarkIdempotencyKeyAsFailedRequest;
 import com.emmanuelandsamuel.savings_project.dtos.requests.MarkIdempotencyKeyAsSuccessRequest;
 import com.emmanuelandsamuel.savings_project.dtos.requests.SaveIdempotencyKeyRequest;
 import com.emmanuelandsamuel.savings_project.dtos.responses.ApiResponse;
@@ -14,4 +15,7 @@ public interface IdempotencyService {
     int saveKey(SaveIdempotencyKeyRequest saveIdempotencyKeyRequest);
 
     <T> void markKeyAsSuccess(MarkIdempotencyKeyAsSuccessRequest<T> markIdempotencyKeyAsSuccessRequest);
+
+    void markKeyAsFailed(MarkIdempotencyKeyAsFailedRequest markIdempotencyKeyAsFailedRequest);
+
 }

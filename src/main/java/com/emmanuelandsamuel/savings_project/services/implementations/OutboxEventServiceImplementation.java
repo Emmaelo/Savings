@@ -20,20 +20,39 @@ public class OutboxEventServiceImplementation implements OutboxEventService {
     @Override
     public void saveOutboxEvent(SaveOutboxEventRequest saveOutboxEventRequest) {
 
-        int insertedRows = outboxEventRepository.insertIgnoreConflict(
-                saveOutboxEventRequest.getId(),
-                saveOutboxEventRequest.getEventType(),
-                saveOutboxEventRequest.getPayload(),
-                saveOutboxEventRequest.getKafkaTopic(),
-                saveOutboxEventRequest.getIdempotencyKey(),
-                saveOutboxEventRequest.getStatus(),
-                saveOutboxEventRequest.getRetryCount(),
-                saveOutboxEventRequest.getMaxRetries(),
-                saveOutboxEventRequest.getCreatedAt(),
-                saveOutboxEventRequest.getVersion()
-        );
+        try {
 
-        if (insertedRows == 0)
-            log.warn("Duplicate outbox event detected for idempotencyKey={} and eventType={}. Skipping creation.", saveOutboxEventRequest.getIdempotencyKey(), saveOutboxEventRequest.getEventType());
+            int insertedRows = outboxEventRepository.insertIgnoreConflict(
+                    saveOutboxEventRequest.getId(),
+                    saveOutboxEventRequest.getEventType(),
+                    saveOutboxEventRequest.getPayload(),
+                    saveOutboxEventRequest.getKafkaTopic(),
+                    saveOutboxEventRequest.getIdempotencyKey(),
+                    saveOutboxEventRequest.getStatus(),
+                    saveOutboxEventRequest.getRetryCount(),
+                    saveOutboxEventRequest.getMaxRetries(),
+                    saveOutboxEventRequest.getCreatedAt(),
+                    saveOutboxEventRequest.getVersion()
+            );
+
+            if (insertedRows == 0)
+                log.warn(
+                        "Duplicate outbox event detected for idempotencyKey={} and eventType={}. Skipping creation.",
+                        saveOutboxEventRequest.getIdempotencyKey(),
+                        saveOutboxEventRequest.getEventType()
+                );
+
+        } catch (Exception ex) {
+
+            log.error(
+                    "Error occurred while saving outbox event with idempotencyKey={} and eventType={}. Exception: {}",
+                    saveOutboxEventRequest.getIdempotencyKey(),
+                    saveOutboxEventRequest.getEventType(),
+                    ex.getMessage()
+            );
+
+            throw ex; // Rethrow the exception to ensure transaction rollback
+
+        }
     }
 }

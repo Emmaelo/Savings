@@ -17,6 +17,8 @@ public class AppExtensions {
 
     public static final String EMAIL_VERIFICATION_EVENT = "EMAIL_VERIFICATION";
 
+    public static final String USER_REGISTERED_EVENT = "USER_REGISTERED";
+
     public static final String EMAIL_VERIFICATION_KAFKA_TOPIC = "EMAIL_VERIFICATION_TOPIC";
 
     public static final String IDEMPOTENCY_KEY_HEADER = "X-Idempotency-Key";

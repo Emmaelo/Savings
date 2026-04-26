@@ -1,6 +1,7 @@
 package com.emmanuelandsamuel.savings_project.services.implementations;
 
 import com.emmanuelandsamuel.savings_project.dtos.requests.IdempotencyKeyCheckRequest;
+import com.emmanuelandsamuel.savings_project.dtos.requests.MarkIdempotencyKeyAsFailedRequest;
 import com.emmanuelandsamuel.savings_project.dtos.requests.MarkIdempotencyKeyAsSuccessRequest;
 import com.emmanuelandsamuel.savings_project.dtos.requests.SaveIdempotencyKeyRequest;
 import com.emmanuelandsamuel.savings_project.dtos.responses.ApiResponse;
@@ -118,6 +119,23 @@ public class IdempotencyServiceImplementation implements IdempotencyService {
                     idempotencyRecord.setResponseMessage(markIdempotencyKeyAsSuccessRequest.getResponseMessage());
 
                     idempotencyRecord.setResolvedAt(LocalDateTime.now());
+
+                    idempotencyRecordRepository.save(idempotencyRecord);
+                });
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    @Override
+    public void markKeyAsFailed(MarkIdempotencyKeyAsFailedRequest markIdempotencyKeyAsFailedRequest) {
+
+        idempotencyRecordRepository.findByKeyAndEventType(markIdempotencyKeyAsFailedRequest.getIdempotencyKey(), markIdempotencyKeyAsFailedRequest.getEventType())
+                .ifPresent(idempotencyRecord -> {
+
+                    idempotencyRecord.setIdempotencyStatus(IdempotencyStatus.FAILURE);
+
+                    idempotencyRecord.setResolvedAt(LocalDateTime.now());
+
+                    idempotencyRecord.setResponseMessage(markIdempotencyKeyAsFailedRequest.getResponseMessage());
 
                     idempotencyRecordRepository.save(idempotencyRecord);
                 });

@@ -9,4 +9,6 @@ public interface EmailVerificationService {
 
     ApiResponse<String> verifyVerificationCode(EmailVerificationRequest emailVerificationRequest);
 
+    boolean isEmailVerified(String email);
+
 }

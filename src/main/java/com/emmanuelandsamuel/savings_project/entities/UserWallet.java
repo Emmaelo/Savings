@@ -31,9 +31,11 @@ public class UserWallet extends BaseEntity {
     private String currency = "NGN";
 
     @Version
-    private Long version;
+    @Builder.Default
+    private Long version = 0L;
 
     @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
     @Builder.Default
     private WalletStatus walletStatus = WalletStatus.ACTIVE;
 }
