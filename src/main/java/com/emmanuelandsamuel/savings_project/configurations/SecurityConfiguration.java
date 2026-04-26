@@ -25,6 +25,7 @@ public class SecurityConfiguration {
                         .requestMatchers(
                                 "/api/email/send-verification-code",
                                 "/api/email/verify-verification-code",
+                                "/api/user/register",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
                                 "/actuator/health"
@@ -42,11 +43,13 @@ public class SecurityConfiguration {
     public PasswordEncoder passwordEncoder() {
 
         return new BCryptPasswordEncoder();
+
     }
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) {
 
         return config.getAuthenticationManager();
+
     }
 }

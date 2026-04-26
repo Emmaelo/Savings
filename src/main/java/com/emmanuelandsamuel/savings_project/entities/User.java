@@ -11,7 +11,6 @@ import java.util.UUID;
 @Table(
         name = "users",
         indexes = {
-                @Index(name = "idx_user_email", columnList = "email"),
                 @Index(name = "idx_user_phone_number", columnList = "phoneNumber")
         }
 )
@@ -43,12 +42,22 @@ public class User extends BaseEntity {
     @Column(nullable = false, unique = true)
     private String phoneNumber;
 
+    @Version
+    @Column(nullable = false)
+    private Long version;
+
+    @Column(nullable = false)
+    private boolean isAccountLocked;
+
+    @Column(nullable = false)
+    private int failedLoginAttempts;
+
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private Role role;
 
-    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_wallet_id", nullable = false, updatable = false)
+    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_wallet_id")
     private UserWallet userWallet;
 
 }

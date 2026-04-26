@@ -295,4 +295,13 @@ public class EmailVerificationServiceImplementation implements EmailVerification
 
         }
     }
+
+    @Override
+    public boolean isEmailVerified(String email) {
+
+        Optional<EmailVerification> optionalEmailVerification = emailVerificationRepository.findByEmail(email);
+
+        return optionalEmailVerification.map(EmailVerification::isVerified).orElse(false);
+
+    }
 }
