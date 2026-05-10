@@ -19,7 +19,7 @@ spring:
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: update
     show-sql: false
 
   kafka:
@@ -82,3 +82,7 @@ outbox:
     batch-size: 50
     backoff-multiplier-seconds: 30
     cleanup-retention-hours: 24
+
+jwt:
+  issuer: "SavingsProject"
+  expiry: 3600
