@@ -42,10 +42,6 @@ public class User extends BaseEntity {
     @Column(nullable = false, unique = true)
     private String phoneNumber;
 
-    @Version
-    @Column(nullable = false)
-    private Long version;
-
     @Column(nullable = false)
     private boolean isAccountLocked;
 

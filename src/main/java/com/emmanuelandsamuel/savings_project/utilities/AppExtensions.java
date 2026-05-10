@@ -23,6 +23,10 @@ public class AppExtensions {
 
     public static final String IDEMPOTENCY_KEY_HEADER = "X-Idempotency-Key";
 
+    public static final String USER_LOGIN_EVENT = "USER_LOGIN";
+
+    public static final int MAX_LOGIN_ATTEMPTS = 3;
+
     public static <T> String serialize(T object) {
 
         try {

@@ -1,7 +1,9 @@
 package com.emmanuelandsamuel.savings_project.controllers;
 
+import com.emmanuelandsamuel.savings_project.dtos.requests.UserLoginRequest;
 import com.emmanuelandsamuel.savings_project.dtos.requests.UserRegistrationRequest;
 import com.emmanuelandsamuel.savings_project.dtos.responses.ApiResponse;
+import com.emmanuelandsamuel.savings_project.dtos.responses.LoginResponse;
 import com.emmanuelandsamuel.savings_project.services.interfaces.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -46,5 +48,30 @@ public class UserController {
 
         return ResponseEntity.ok(apiResponse);
 
+
+    }
+
+    @Operation(summary = "Login to your account", description = "Authenticates a user with their email and password. If the credentials are valid, the user will receive an authentication token that can be used for subsequent requests to protected endpoints.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Login successful.",
+                    content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid request data.",
+                    content = @Content(schema = @Schema(implementation = ApiResponse.class)))
+    })
+    @PostMapping("/login")
+    public ResponseEntity<ApiResponse<LoginResponse>> loginUser(@RequestHeader(IDEMPOTENCY_KEY_HEADER) String idempotencyKey,
+                                                            @Valid @RequestBody UserLoginRequest userLoginRequest) {
+
+        ApiResponse<LoginResponse> apiResponse = userService.loginUser(idempotencyKey, userLoginRequest);
+
+        if (!apiResponse.isSuccessful())
+            return ResponseEntity.badRequest().body(apiResponse);
+
+        return ResponseEntity.ok(apiResponse);
+    }
+
+    @GetMapping("/test")
+    public String testEndpoint() {
+        return "Hello, World!";
     }
 }
