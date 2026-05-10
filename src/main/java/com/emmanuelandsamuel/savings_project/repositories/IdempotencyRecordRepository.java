@@ -27,6 +27,7 @@ public interface IdempotencyRecordRepository extends JpaRepository<IdempotencyRe
                 event_type,
                 request_fingerprint,
                 response_message,
+                idempotency_status,
                 created_at,
                 expires_at
             )
@@ -36,6 +37,7 @@ public interface IdempotencyRecordRepository extends JpaRepository<IdempotencyRe
                 :eventType,
                 :requestFingerPrint,
                 :responseMessage,
+                :idempotencyStatus,
                 now(),
                 :expiresAt
             )
@@ -47,6 +49,7 @@ public interface IdempotencyRecordRepository extends JpaRepository<IdempotencyRe
             @Param("eventType") String eventType,
             @Param("requestFingerPrint") String requestFingerPrint,
             @Param("responseMessage") String responseMessage,
+            @Param("idempotencyStatus") String idempotencyStatus,
             @Param("expiresAt") LocalDateTime expiresAt
     );
 

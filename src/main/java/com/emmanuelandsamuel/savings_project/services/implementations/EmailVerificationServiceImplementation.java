@@ -4,6 +4,7 @@ import com.emmanuelandsamuel.savings_project.dtos.events.EmailVerificationEvent;
 import com.emmanuelandsamuel.savings_project.dtos.requests.*;
 import com.emmanuelandsamuel.savings_project.dtos.responses.ApiResponse;
 import com.emmanuelandsamuel.savings_project.entities.EmailVerification;
+import com.emmanuelandsamuel.savings_project.enumerations.IdempotencyStatus;
 import com.emmanuelandsamuel.savings_project.exceptions.ApplicationException;
 import com.emmanuelandsamuel.savings_project.repositories.EmailVerificationRepository;
 import com.emmanuelandsamuel.savings_project.services.interfaces.EmailVerificationService;
@@ -72,6 +73,7 @@ public class EmailVerificationServiceImplementation implements EmailVerification
                     .id(UUID.randomUUID())
                     .idempotencyKey(idempotencyKey)
                     .eventType(EMAIL_VERIFICATION_EVENT)
+                    .idempotencyStatus(IdempotencyStatus.PROCESSING)
                     .requestFingerprint(generateHash(email))
                     .responseMessage("Your request is currently processing. Check your email address for a verification code.")
                     .expiresAt(LocalDateTime.now().plusMinutes(20L))

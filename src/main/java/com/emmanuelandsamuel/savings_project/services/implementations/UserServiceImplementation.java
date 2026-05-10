@@ -2,15 +2,18 @@ package com.emmanuelandsamuel.savings_project.services.implementations;
 
 import com.emmanuelandsamuel.savings_project.dtos.requests.*;
 import com.emmanuelandsamuel.savings_project.dtos.responses.ApiResponse;
+import com.emmanuelandsamuel.savings_project.dtos.responses.LoginResponse;
+import com.emmanuelandsamuel.savings_project.entities.User;
+import com.emmanuelandsamuel.savings_project.enumerations.IdempotencyStatus;
 import com.emmanuelandsamuel.savings_project.enumerations.Role;
 import com.emmanuelandsamuel.savings_project.exceptions.ApplicationException;
 import com.emmanuelandsamuel.savings_project.repositories.UserRepository;
-import com.emmanuelandsamuel.savings_project.services.interfaces.EmailVerificationService;
-import com.emmanuelandsamuel.savings_project.services.interfaces.IdempotencyService;
-import com.emmanuelandsamuel.savings_project.services.interfaces.UserService;
-import com.emmanuelandsamuel.savings_project.services.interfaces.UserWalletService;
+import com.emmanuelandsamuel.savings_project.services.interfaces.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,6 +40,10 @@ public class UserServiceImplementation implements UserService {
 
     private final UserWalletService userWalletService;
 
+    private final AuthenticationManager authenticationManager;
+
+    private final JwtService jwtService;
+
     @Transactional
     @Override
     public ApiResponse<String> registerUser(String idempotencyKey, UserRegistrationRequest userRegistrationRequest) {
@@ -49,11 +56,11 @@ public class UserServiceImplementation implements UserService {
 
             IdempotencyKeyCheckRequest<String> idempotencyKeyCheckRequest =
                     IdempotencyKeyCheckRequest.<String>builder()
-                    .idempotencyKey(idempotencyKey)
-                    .incomingFingerprint(requestFingerprint)
-                    .eventType(USER_REGISTERED_EVENT)
-                    .responseType(String.class)
-                    .build();
+                            .idempotencyKey(idempotencyKey)
+                            .incomingFingerprint(requestFingerprint)
+                            .eventType(USER_REGISTERED_EVENT)
+                            .responseType(String.class)
+                            .build();
 
             Optional<ApiResponse<String>> cachedResponse = idempotencyService.checkKey(idempotencyKeyCheckRequest);
 
@@ -86,6 +93,7 @@ public class UserServiceImplementation implements UserService {
                     .idempotencyKey(idempotencyKey)
                     .eventType(USER_REGISTERED_EVENT)
                     .requestFingerprint(requestFingerprint)
+                    .idempotencyStatus(IdempotencyStatus.PROCESSING)
                     .responseMessage("Your registration request is currently being processed. Please wait a moment and try again.")
                     .expiresAt(LocalDateTime.now().plusMinutes(20L))
                     .build();
@@ -107,7 +115,6 @@ public class UserServiceImplementation implements UserService {
                     userRegistrationRequest.getLastname(),
                     passwordEncoder.encode(userRegistrationRequest.getPassword()),
                     userRegistrationRequest.getPhoneNumber(),
-                    0L,
                     false,
                     0,
                     Role.USER.name()
@@ -155,5 +162,111 @@ public class UserServiceImplementation implements UserService {
             throw new ApplicationException("Registration failed. Please try again later.");
 
         }
+    }
+
+    @Transactional
+    @Override
+    public ApiResponse<LoginResponse> loginUser(String idempotencyKey, UserLoginRequest userLoginRequest) {
+
+        Optional<User> optionalUser = userRepository.findByEmail(userLoginRequest.getEmail());
+
+        if (optionalUser.isEmpty())
+            return ApiResponse.error("Invalid email or password.");
+
+        User user = optionalUser.get();
+
+        boolean isAccountLocked = user.isAccountLocked();
+
+        if (isAccountLocked)
+            return ApiResponse.error("Your account is locked due to multiple failed login attempts. Please try again later or reset your password.");
+
+        boolean doesPasswordMatch = passwordEncoder.matches(userLoginRequest.getPassword(), user.getPassword());
+
+        if (!doesPasswordMatch) {
+
+            String jsonPayload = serialize(userLoginRequest);
+
+            String requestFingerprint = generateHash(Objects.requireNonNull(jsonPayload));
+
+            IdempotencyKeyCheckRequest<LoginResponse> idempotencyKeyCheckRequest =
+                    IdempotencyKeyCheckRequest.<LoginResponse>builder()
+                            .idempotencyKey(idempotencyKey)
+                            .incomingFingerprint(requestFingerprint)
+                            .eventType(USER_LOGIN_EVENT)
+                            .responseType(LoginResponse.class)
+                            .build();
+
+            Optional<ApiResponse<LoginResponse>> cachedResponse = idempotencyService.checkKey(idempotencyKeyCheckRequest);
+
+            if (cachedResponse.isPresent()) {
+
+                log.info("Idempotent failed login attempt detected. Returning cached response for key: {}", idempotencyKey);
+
+                return cachedResponse.get();
+
+            }
+
+            int currentFailedLoginAttempts = user.getFailedLoginAttempts();
+
+            int updatedFailedLoginAttempts = currentFailedLoginAttempts + 1;
+
+            int remainingLoginAttempts = MAX_LOGIN_ATTEMPTS - updatedFailedLoginAttempts;
+
+            if (remainingLoginAttempts <= 0) {
+
+                user.setAccountLocked(true);
+
+                userRepository.save(user);
+
+                return ApiResponse.error("Your account has been locked due to too many failed login attempts. Please reset your password or contact support.");
+
+            }
+
+            user.setFailedLoginAttempts(updatedFailedLoginAttempts);
+
+            userRepository.save(user);
+
+            SaveIdempotencyKeyRequest saveIdempotencyKeyRequest = SaveIdempotencyKeyRequest
+                    .builder()
+                    .id(UUID.randomUUID())
+                    .idempotencyKey(idempotencyKey)
+                    .eventType(USER_LOGIN_EVENT)
+                    .requestFingerprint(requestFingerprint)
+                    .idempotencyStatus(IdempotencyStatus.FAILURE)
+                    .responseMessage("Invalid email or password. You have " + remainingLoginAttempts + " more attempt(s) before your account gets locked.")
+                    .expiresAt(LocalDateTime.now().plusMinutes(20L))
+                    .build();
+
+            int insertedIdempotencyRecordRows = idempotencyService.saveKey(saveIdempotencyKeyRequest);
+
+            if (insertedIdempotencyRecordRows == 0) {
+
+                log.info("Another failed login attempt with the same idempotency key is already being processed. IdempotencyKey: {}", idempotencyKey);
+
+            }
+
+            return ApiResponse.error("Invalid email or password. You have " + remainingLoginAttempts + " more attempt(s) before your account gets locked.");
+
+        }
+
+        user.setFailedLoginAttempts(0);
+
+        user.setAccountLocked(false);
+
+        var usernamePasswordAuthenticationToken = new UsernamePasswordAuthenticationToken(userLoginRequest.getEmail(), userLoginRequest.getPassword());
+
+        Authentication authentication = authenticationManager.authenticate(usernamePasswordAuthenticationToken);
+
+        String jwtToken = jwtService.generateToken(authentication);
+
+        LoginResponse loginResponse = LoginResponse
+                .builder()
+                .userId(user.getId())
+                .jwtToken(jwtToken)
+                .loginDate(LocalDateTime.now())
+                .build();
+
+        return ApiResponse.success("Login successful.", loginResponse);
+
     }
 }

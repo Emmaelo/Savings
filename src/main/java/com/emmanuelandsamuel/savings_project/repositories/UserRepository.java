@@ -27,7 +27,6 @@ public interface UserRepository extends JpaRepository<User, UUID> {
                 lastname,
                 password,
                 phone_number,
-                version,
                 is_account_locked,
                 failed_login_attempts,
                 role,
@@ -39,7 +38,6 @@ public interface UserRepository extends JpaRepository<User, UUID> {
                 :lastname,
                 :password,
                 :phoneNumber,
-                :version,
                 :isAccountLocked,
                 :failedLoginAttempts,
                 :role,
@@ -54,7 +52,6 @@ public interface UserRepository extends JpaRepository<User, UUID> {
             @Param("lastname") String lastname,
             @Param("password") String password,
             @Param("phoneNumber") String phoneNumber,
-            @Param("version") Long version,
             @Param("isAccountLocked") boolean isAccountLocked,
             @Param("failedLoginAttempts") int failedLoginAttempts,
             @Param("role") String role

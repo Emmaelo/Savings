@@ -1,5 +1,6 @@
 package com.emmanuelandsamuel.savings_project.dtos.requests;
 
+import com.emmanuelandsamuel.savings_project.enumerations.IdempotencyStatus;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -21,6 +22,8 @@ public class SaveIdempotencyKeyRequest {
     private String requestFingerprint;
 
     private String responseMessage;
+
+    private IdempotencyStatus idempotencyStatus;
 
     private LocalDateTime expiresAt;
 }
