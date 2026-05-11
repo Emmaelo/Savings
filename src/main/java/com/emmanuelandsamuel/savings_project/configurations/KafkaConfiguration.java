@@ -6,6 +6,7 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.annotation.EnableKafka;
@@ -29,12 +30,18 @@ import static com.emmanuelandsamuel.savings_project.utilities.AppExtensions.EMAI
 @Configuration
 public class KafkaConfiguration {
 
+    @Value("${spring.kafka.producer.bootstrap-servers}")
+    private String producerBootstrapServers;
+
+    @Value("${spring.kafka.consumer.bootstrap-servers}")
+    private String consumerBootstrapServers;
+
     @Bean
     public ProducerFactory<String, Object> producerFactory() {
 
         Map<String, Object> config = new HashMap<>();
 
-        config.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+        config.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, producerBootstrapServers);
 
         config.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
 
@@ -56,7 +63,7 @@ public class KafkaConfiguration {
 
         Map<String, Object> config = new HashMap<>();
 
-        config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+        config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, consumerBootstrapServers);
 
         config.put(ConsumerConfig.GROUP_ID_CONFIG, "savings-group");
 
