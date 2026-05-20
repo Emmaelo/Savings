@@ -4,9 +4,13 @@ import com.emmanuelandsamuel.savings_project.entities.Group;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
 import java.util.UUID;
 
 @SuppressWarnings("NullableProblems")
 @Repository
 public interface GroupRepository extends JpaRepository<Group, UUID> {
+    boolean existsByGroupCode(String groupCode);
+    boolean existsByName(String name);
+    Optional<Group> findByGroupCodeOrName(String groupCode, String name);
 }

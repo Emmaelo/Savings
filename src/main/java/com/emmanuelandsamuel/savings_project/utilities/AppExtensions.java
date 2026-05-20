@@ -1,11 +1,14 @@
 package com.emmanuelandsamuel.savings_project.utilities;
 
+import com.emmanuelandsamuel.savings_project.enumerations.GroupSavingsType;
 import com.emmanuelandsamuel.savings_project.exceptions.ApplicationException;
 import tools.jackson.databind.ObjectMapper;
 
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.LocalDate;
 import java.util.Random;
 
 public class AppExtensions {
@@ -22,6 +25,10 @@ public class AppExtensions {
     public static final String EMAIL_VERIFICATION_KAFKA_TOPIC = "EMAIL_VERIFICATION_TOPIC";
 
     public static final String IDEMPOTENCY_KEY_HEADER = "X-Idempotency-Key";
+
+    public static final String USER_LOGIN_EVENT = "USER_LOGIN";
+
+    public static final int MAX_LOGIN_ATTEMPTS = 3;
 
     public static <T> String serialize(T object) {
 
@@ -129,5 +136,35 @@ public class AppExtensions {
                 </body>
                 </html>
                 """;
+    }
+
+
+
+    public static BigDecimal convertKoboToNaira(Long amountInKobo) {
+        if (amountInKobo == null) return null;
+        return BigDecimal.valueOf(amountInKobo).divide(BigDecimal.valueOf(100));
+    }
+
+    public static Long convertNairaToKobo(BigDecimal amountInNaira) {
+        if (amountInNaira == null) return null;
+        return amountInNaira.multiply(BigDecimal.valueOf(100)).longValue();
+    }
+
+     public static LocalDate calculateNextDate(LocalDate currentDate, GroupSavingsType cycle) {
+
+        return switch (cycle) {
+
+            case DAILY ->
+                currentDate.plusDays(1);
+
+            case WEEKLY ->
+                currentDate.plusWeeks(1);
+
+            case BI_WEEKLY ->
+                currentDate.plusWeeks(2);
+
+            case MONTHLY ->
+                currentDate.plusMonths(1);
+        };
     }
 }

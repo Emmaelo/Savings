@@ -38,4 +38,7 @@ public class UserWallet extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Builder.Default
     private WalletStatus walletStatus = WalletStatus.ACTIVE;
+
+    @OneToOne(mappedBy = "userWallet")
+    private User user;
 }

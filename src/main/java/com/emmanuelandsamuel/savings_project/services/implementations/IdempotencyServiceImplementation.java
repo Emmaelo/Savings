@@ -100,6 +100,7 @@ public class IdempotencyServiceImplementation implements IdempotencyService {
                 saveIdempotencyKeyRequest.getEventType(),
                 saveIdempotencyKeyRequest.getRequestFingerprint(),
                 saveIdempotencyKeyRequest.getResponseMessage(),
+                saveIdempotencyKeyRequest.getIdempotencyStatus().name(),
                 saveIdempotencyKeyRequest.getExpiresAt()
         );
 

@@ -1,6 +1,7 @@
 package com.emmanuelandsamuel.savings_project.entities;
 
 import com.emmanuelandsamuel.savings_project.enumerations.LedgerEntryType;
+
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -31,8 +32,12 @@ public class GroupWalletLedger extends BaseEntity {
     @Column(nullable = false)
     private BigDecimal balanceAfter;
 
+    @Column(nullable = false)
+    private UUID userId;
+
     @Version
-    private Long version;
+    @Builder.Default
+    private Long version = 0L;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

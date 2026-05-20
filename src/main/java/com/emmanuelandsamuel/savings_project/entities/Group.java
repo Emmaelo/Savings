@@ -6,6 +6,8 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -37,7 +39,10 @@ public class Group extends BaseEntity {
     @Column(nullable = false)
     private UUID creatorId;
 
-    @Column(nullable = false)
+    @Column(nullable = false, precision = 19, scale = 2)
+    private BigDecimal amountToSave;
+
+    @Column(nullable = false, unique = true, updatable = false)
     private String groupCode;
 
     @Column(nullable = false)
@@ -46,6 +51,9 @@ public class Group extends BaseEntity {
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private GroupStatus groupStatus;
+
+    @Column(nullable = false)
+    private boolean guaranteeRequired;
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
@@ -58,6 +66,16 @@ public class Group extends BaseEntity {
     @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "group_wallet_id", nullable = false, updatable = false)
     private GroupWallet groupWallet;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private int currentPayoutIndex = 1;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private int currentCycle = 1;
+
+    private LocalDate nextContributionDate;
 
     public void addMember(GroupMember groupMember) {
 
@@ -72,4 +90,14 @@ public class Group extends BaseEntity {
 
         groupMember.setGroup(null);
     }
+
+    public void assignGroupWallet(GroupWallet groupWallet) {
+        this.groupWallet = groupWallet;
+        if (groupWallet != null) {
+            groupWallet.setGroup(this);
+        }
+    }
+
+
+    
 }

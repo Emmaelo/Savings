@@ -38,4 +38,10 @@ public class UserWalletLedger extends BaseEntity {
     @Column(nullable = false)
     private LedgerEntryType entryType;
 
+    private String transactionReference;
+    private String bank;
+    
+    @Column(nullable = false)
+    private BigDecimal fee;
+
 }

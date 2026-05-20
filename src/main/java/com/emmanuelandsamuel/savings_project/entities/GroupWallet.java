@@ -32,10 +32,14 @@ public class GroupWallet extends BaseEntity {
     private String currency = "NGN";
 
     @Version
-    private Long version;
+    @Builder.Default
+    private Long version = 0L;
 
     @Column(nullable = false)
     @Builder.Default
     private WalletStatus walletStatus = WalletStatus.ACTIVE;
+
+    @OneToOne(mappedBy = "groupWallet", fetch = FetchType.LAZY)
+    private Group group;
 
 }

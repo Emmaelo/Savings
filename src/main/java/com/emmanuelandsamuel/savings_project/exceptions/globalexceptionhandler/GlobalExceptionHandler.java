@@ -2,6 +2,8 @@ package com.emmanuelandsamuel.savings_project.exceptions.globalexceptionhandler;
 
 import com.emmanuelandsamuel.savings_project.dtos.responses.ApiResponse;
 import com.emmanuelandsamuel.savings_project.exceptions.ApplicationException;
+import com.emmanuelandsamuel.savings_project.exceptions.WalletNotFoundException;
+
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.Nullable;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
@@ -54,5 +56,15 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         ApiResponse<String> apiResponse = ApiResponse.error("An error occurred while processing your request.");
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(apiResponse);
+    }
+
+     @ExceptionHandler(WalletNotFoundException.class)
+    public ResponseEntity<ApiResponse<String>> handleWalletNotFoundException(WalletNotFoundException ex) {
+
+        log.error("Wallet not found: {}", ex.getMessage(), ex);
+
+        ApiResponse<String> apiResponse = ApiResponse.error("Wallet not found.");
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(apiResponse);
     }
 }

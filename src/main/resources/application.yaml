@@ -82,3 +82,10 @@ outbox:
     batch-size: 50
     backoff-multiplier-seconds: 30
     cleanup-retention-hours: 24
+
+jwt:
+  issuer: "SavingsProject"
+  expiry: 3600
+
+paystack:
+  secret-key: ${PAYSTACK_SECRET_KEY}

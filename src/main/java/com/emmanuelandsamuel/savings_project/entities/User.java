@@ -5,6 +5,8 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -42,10 +44,6 @@ public class User extends BaseEntity {
     @Column(nullable = false, unique = true)
     private String phoneNumber;
 
-    @Version
-    @Column(nullable = false)
-    private Long version;
-
     @Column(nullable = false)
     private boolean isAccountLocked;
 
@@ -59,5 +57,9 @@ public class User extends BaseEntity {
     @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JoinColumn(name = "user_wallet_id")
     private UserWallet userWallet;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<Transactions> transactions = new ArrayList<>();
 
 }
