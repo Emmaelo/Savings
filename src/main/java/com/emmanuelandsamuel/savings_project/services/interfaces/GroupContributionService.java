@@ -4,6 +4,6 @@ import java.util.UUID;
 
 public interface GroupContributionService {
     String payContribution(String groupCode);
-    boolean processNextCycle(UUID groupId);
+    String processNextCycle(UUID groupId);
 
 }

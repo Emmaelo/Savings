@@ -28,7 +28,7 @@ public class GroupContributionController {
 
     @Operation(summary = "Process next cycle for a group", description = "Processes the next saving cycle for a specific group")
     @PostMapping("/next-cycle/{groupId}")
-    public boolean processNextCycle(UUID groupId) {
+    public String processNextCycle(UUID groupId) {
         return groupContributionService.processNextCycle(groupId);
     }
 

@@ -26,6 +26,7 @@ import com.emmanuelandsamuel.savings_project.enumerations.GroupStatus;
 import com.emmanuelandsamuel.savings_project.enumerations.LedgerEntryType;
 import com.emmanuelandsamuel.savings_project.exceptions.ApplicationException;
 import com.emmanuelandsamuel.savings_project.repositories.CompanyWalletLedgerRepository;
+import com.emmanuelandsamuel.savings_project.repositories.GroupContributionRecordRepository;
 import com.emmanuelandsamuel.savings_project.repositories.GroupRepository;
 import com.emmanuelandsamuel.savings_project.repositories.GroupWalletLedgerRepository;
 import com.emmanuelandsamuel.savings_project.repositories.UserRepository;
@@ -46,6 +47,7 @@ public class GroupServiceImplementation implements GroupService {
     private final CompanyWalletLedgerRepository companyWalletLedgerRepository;
     private final UserWalletLedgerRepository userWalletLedgerRepository;
     private static final BigDecimal FEE = BigDecimal.valueOf(500);
+    private final GroupContributionRecordRepository groupContributionRepository;
     
 
     @Override
@@ -336,8 +338,36 @@ public class GroupServiceImplementation implements GroupService {
 
         groupRepository.save(group);
 
+
+        int nextPayoutIndex = group.getCurrentPayoutIndex();
+
+
+        List<GroupContributionRecord> contributionRecords = group.getGroupMembers().stream()
+        .filter(m -> m.getPayoutIndex() != nextPayoutIndex)
+        .map(member -> {
+            GroupContributionRecord record = new GroupContributionRecord();
+
+            record.setGroupId(group.getId());
+            record.setGroupCode(group.getGroupCode());
+            record.setCycleNumber(group.getCurrentCycle()); 
+            record.setUserId(member.getUserId());
+            record.setUserEmail(member.getUserEmail());
+            record.setAmount(group.getAmountToSave());
+            record.setNextCycleDate(group.getNextContributionDate());
+            record.setContributionStatus(GroupContributionRecord.ContributionStatus.DUE);
+
+            return record;
+        })
+        .toList();
+
+       groupContributionRepository.saveAll(contributionRecords);
+
+
+
         return "Group Activated.";
     }
+
+
 
     @Transactional
     @Override
@@ -463,9 +493,7 @@ public class GroupServiceImplementation implements GroupService {
                         .balanceAfter(user.getUserWallet().getAvailableBalance())
                         .entryType(LedgerEntryType.CREDIT)
                         .fee(FEE)
-                        .bank(null)
                         .source("GROUP PAYOUT")
-                        .transactionReference(null)
                         .build());
 
         groupWalletLedgerRepository.save(

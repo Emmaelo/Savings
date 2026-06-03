@@ -31,6 +31,10 @@ public class GroupContributionRecord extends BaseEntity {
 
     private UUID userId;
 
+    private String groupCode;
+
+    private String userEmail;
+
     private LocalDate nextCycleDate;
 
     @Enumerated(EnumType.STRING)

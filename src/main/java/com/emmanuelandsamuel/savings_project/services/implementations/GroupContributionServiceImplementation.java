@@ -46,8 +46,9 @@ public class GroupContributionServiceImplementation implements GroupContribution
         @Transactional
         @Override
         public String payContribution(String groupCode) {
-              
-                // String email = SecurityContextHolder.getContext().getAuthentication().getName();
+
+                // String email =
+                // SecurityContextHolder.getContext().getAuthentication().getName();
                 String email = "emmanuelezeuchegbu@gmail.com";
 
                 User user = userRepository.findByEmail(email)
@@ -56,14 +57,10 @@ public class GroupContributionServiceImplementation implements GroupContribution
                 Group group = groupRepository.findByGroupCode(groupCode)
                                 .orElseThrow(() -> new ApplicationException("Group not found"));
 
-                GroupMember member = group.getGroupMembers().stream()
+                group.getGroupMembers().stream()
                                 .filter(m -> m.getUserId().equals(user.getId()))
                                 .findFirst()
                                 .orElseThrow(() -> new ApplicationException("Group member not found"));
-
-                if (member.getPayoutIndex() == group.getCurrentPayoutIndex()) {
-                        return "You are currently in the payout position. You cannot contribute at this time.";
-                }
 
                 Optional<GroupContributionRecord> optionalContribution = groupContributionRepository
                                 .findByGroupIdAndCycleNumberAndUserId(
@@ -71,8 +68,12 @@ public class GroupContributionServiceImplementation implements GroupContribution
                                                 group.getCurrentCycle(),
                                                 user.getId());
 
-                if (optionalContribution.isPresent()) {
-                        return "Contribution already recorded for this cycle";
+                if (optionalContribution.isEmpty()) {
+                        return "You are not expected to contribute for this cycle. Please wait for the next cycle.";
+                }
+
+                if (optionalContribution.get().getContributionStatus() == ContributionStatus.PAID) {
+                        return "You have already paid for this cycle.";
                 }
 
                 if (user.getUserWallet().getAvailableBalance().compareTo(group.getAmountToSave()) < 0) {
@@ -110,39 +111,37 @@ public class GroupContributionServiceImplementation implements GroupContribution
                                                 .source("Group Contribution from " + user.getEmail())
                                                 .build());
 
-                GroupContributionRecord groupContributionRecord = GroupContributionRecord.builder()
-                                .groupId(group.getId())
-                                .userId(user.getId())
-                                .cycleNumber(group.getCurrentCycle())
-                                .contributionStatus(ContributionStatus.PAID)
-                                .paymentMadeOn(LocalDate.now())
-                                .amount(group.getAmountToSave())
-                                .build();
+                GroupContributionRecord groupContributionRecord = optionalContribution.get();
+                groupContributionRecord.setContributionStatus(ContributionStatus.PAID);
+                groupContributionRecord.setPaymentMadeOn(LocalDate.now());
 
                 groupContributionRepository.save(groupContributionRecord);
 
                 return "Contribution recorded successfully.";
         }
 
-        
-
         @Transactional
         @Override
-        public boolean processNextCycle(UUID groupId) {
+        public String processNextCycle(UUID groupId) {
 
                 Group group = groupRepository.findById(groupId)
                                 .orElseThrow(() -> new ApplicationException("Group not found"));
+                
+        
+                if(group.getNextContributionDate().isAfter(LocalDate.now())) {
+                        return "Payment date has not been reached yet. Contact admin if you think this is an error.";
+                }
 
-                List<GroupContributionRecord> records = groupContributionRepository.findByGroupId(groupId);
+                List<GroupContributionRecord> records = groupContributionRepository.findByGroupIdAndCycleNumber(groupId,
+                                group.getCurrentCycle());
 
-                if (!allRequiredMembersPaid(group, records)) {
 
-                        log.error("Not all required members have paid for the current cycle: {}", group.getId());
-
-                        return false;
+                if (!allRequiredMembersPaid(records)) {
+                        return "Not all required members have paid for the current cycle.";
                 }
 
                 List<GroupMember> members = group.getGroupMembers();
+
 
                 int currentIndex = group.getCurrentPayoutIndex();
 
@@ -151,19 +150,19 @@ public class GroupContributionServiceImplementation implements GroupContribution
                                 .findFirst()
                                 .orElseThrow();
 
-                // Trigger payout
 
                 boolean payoutSuccessful = payMember(group, payoutMember);
+                
 
                 if (!payoutSuccessful) {
                         log.error("Failed to process payout for member: {}", payoutMember.getId());
-                        return false;
+                        return "Failed to process payout for member: " + payoutMember.getId();
                 }
 
-                // Mark member as received
+                
                 payoutMember.setHasReceivedCurrentCycle(true);
 
-                // Move to next index
+                
                 int nextIndex = currentIndex + 1;
 
                 // If last member completed, restart
@@ -171,9 +170,10 @@ public class GroupContributionServiceImplementation implements GroupContribution
 
                         nextIndex = 1;
 
-                        // Reset round tracking
+                        
                         members.forEach(m -> m.setHasReceivedCurrentCycle(false));
                         group.setCurrentCycle(group.getCurrentCycle() + 1);
+                        group.setCurrentPayoutIndex(nextIndex);
                 }
 
                 group.setCurrentPayoutIndex(nextIndex);
@@ -184,8 +184,21 @@ public class GroupContributionServiceImplementation implements GroupContribution
                                                 group.getGroupSavingsType()));
                 groupRepository.save(group);
 
-                return true;
+
+                // Set up contribution records for next cycle
+
+                return "Cycle processed successfully.";
         }
+
+
+
+        private boolean allRequiredMembersPaid(List<GroupContributionRecord> records) {
+
+                return records.stream()
+                                .allMatch(r -> r.getContributionStatus() == GroupContributionRecord.ContributionStatus.PAID);
+        }
+
+
 
         private boolean payMember(Group group, GroupMember payoutMember) {
 
@@ -207,8 +220,7 @@ public class GroupContributionServiceImplementation implements GroupContribution
                                                 .balanceAfter(user.getUserWallet().getAvailableBalance())
                                                 .entryType(LedgerEntryType.CREDIT)
                                                 .fee(FEE)
-                                                .bank(null)
-                                                .transactionReference(null)
+                                                .source("Group Payout")
                                                 .build());
 
                 groupWalletLedgerRepository.save(
@@ -217,37 +229,17 @@ public class GroupContributionServiceImplementation implements GroupContribution
                                                 .amount(payoutAmount)
                                                 .balanceAfter(group.getGroupWallet().getAvailableBalance())
                                                 .entryType(LedgerEntryType.DEBIT)
+                                                .source("Group Payout to " + user.getEmail())
                                                 .userId(payoutMember.getUserId())
                                                 .build());
 
-
                 companyWalletLedgerRepository.save(
                                 CompanyWalletLedger.builder()
-                                                // .walletId(companyWallet.getId())
                                                 .amount(FEE)
-                                                // .balanceAfter(companyWallet.getAvailableBalance())
+                                                .source("Group Payout to" + user.getEmail())
                                                 .entryType(LedgerEntryType.CREDIT)
                                                 .build());
                 return true;
-        }
-
-
-
-        private boolean allRequiredMembersPaid(Group group, List<GroupContributionRecord> records) {
-
-                if (group.getCurrentCycle() == 1) {
-
-                        return true;
-                }
-                // This should be && an not a separate if check.
-                if (records.stream()
-                                .filter(r -> r.getContributionStatus()
-                                                .equals(GroupContributionRecord.ContributionStatus.PAID))
-                                .count() == group.getMemberCount() - 1) {
-                        return true;
-                }
-
-                return false;
         }
 
 }
