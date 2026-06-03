@@ -126,22 +126,19 @@ public class GroupContributionServiceImplementation implements GroupContribution
 
                 Group group = groupRepository.findById(groupId)
                                 .orElseThrow(() -> new ApplicationException("Group not found"));
-                
-        
-                if(group.getNextContributionDate().isAfter(LocalDate.now())) {
+
+                if (group.getNextContributionDate().isAfter(LocalDate.now())) {
                         return "Payment date has not been reached yet. Contact admin if you think this is an error.";
                 }
 
                 List<GroupContributionRecord> records = groupContributionRepository.findByGroupIdAndCycleNumber(groupId,
                                 group.getCurrentCycle());
 
-
                 if (!allRequiredMembersPaid(records)) {
                         return "Not all required members have paid for the current cycle.";
                 }
 
                 List<GroupMember> members = group.getGroupMembers();
-
 
                 int currentIndex = group.getCurrentPayoutIndex();
 
@@ -150,19 +147,15 @@ public class GroupContributionServiceImplementation implements GroupContribution
                                 .findFirst()
                                 .orElseThrow();
 
-
                 boolean payoutSuccessful = payMember(group, payoutMember);
-                
 
                 if (!payoutSuccessful) {
                         log.error("Failed to process payout for member: {}", payoutMember.getId());
                         return "Failed to process payout for member: " + payoutMember.getId();
                 }
 
-                
                 payoutMember.setHasReceivedCurrentCycle(true);
 
-                
                 int nextIndex = currentIndex + 1;
 
                 // If last member completed, restart
@@ -170,24 +163,44 @@ public class GroupContributionServiceImplementation implements GroupContribution
 
                         nextIndex = 1;
 
-                        
                         members.forEach(m -> m.setHasReceivedCurrentCycle(false));
                         group.setCurrentCycle(group.getCurrentCycle() + 1);
-                        group.setCurrentPayoutIndex(nextIndex);
+                        
                 }
 
                 group.setCurrentPayoutIndex(nextIndex);
+                group.setNextContributionDate(AppExtensions.calculateNextDate(LocalDate.now(), group.getGroupSavingsType()));
 
-                // Set next contribution date
-                group.setNextContributionDate(
-                                AppExtensions.calculateNextDate(group.getNextContributionDate(),
-                                                group.getGroupSavingsType()));
+                createContributionRecords(group, nextIndex);
+
                 groupRepository.save(group);
 
 
-                // Set up contribution records for next cycle
-
                 return "Cycle processed successfully.";
+        }
+
+
+
+        private void createContributionRecords(Group group, int nextIndex) {
+
+                List<GroupContributionRecord> records = group.getGroupMembers()
+                                .stream()
+                                .filter(member -> member.getPayoutIndex() != nextIndex)
+                                .map(member -> {
+                                        GroupContributionRecord record = new GroupContributionRecord();
+                                        record.setGroupId(group.getId());
+                                        record.setUserId(member.getUserId());
+                                        record.setGroupCode(group.getGroupCode());
+                                        record.setAmount(group.getAmountToSave());
+                                        record.setContributionStatus(GroupContributionRecord.ContributionStatus.DUE);
+                                        record.setCycleNumber(group.getCurrentCycle());
+                                        record.setNextContributionDate(group.getNextContributionDate());
+                                       
+                                        return record;
+                                })
+                                .toList();
+
+                groupContributionRepository.saveAll(records);
         }
 
 
@@ -197,8 +210,6 @@ public class GroupContributionServiceImplementation implements GroupContribution
                 return records.stream()
                                 .allMatch(r -> r.getContributionStatus() == GroupContributionRecord.ContributionStatus.PAID);
         }
-
-
 
         private boolean payMember(Group group, GroupMember payoutMember) {
 

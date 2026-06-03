@@ -353,7 +353,7 @@ public class GroupServiceImplementation implements GroupService {
             record.setUserId(member.getUserId());
             record.setUserEmail(member.getUserEmail());
             record.setAmount(group.getAmountToSave());
-            record.setNextCycleDate(group.getNextContributionDate());
+            record.setNextContributionDate(group.getNextContributionDate());
             record.setContributionStatus(GroupContributionRecord.ContributionStatus.DUE);
 
             return record;

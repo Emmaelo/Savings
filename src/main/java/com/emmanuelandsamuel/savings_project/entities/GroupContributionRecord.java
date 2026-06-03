@@ -35,7 +35,7 @@ public class GroupContributionRecord extends BaseEntity {
 
     private String userEmail;
 
-    private LocalDate nextCycleDate;
+    private LocalDate nextContributionDate;
 
     @Enumerated(EnumType.STRING)
     private ContributionStatus contributionStatus;
