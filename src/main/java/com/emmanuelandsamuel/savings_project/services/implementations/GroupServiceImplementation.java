@@ -317,8 +317,7 @@ public class GroupServiceImplementation implements GroupService {
 
         group.setGroupStatus(GroupStatus.ACTIVE);
         group.setNextContributionDate(AppExtensions.calculateNextDate(LocalDate.now(), group.getGroupSavingsType()));
-        groupRepository.save(group);
-
+        
         GroupMember payoutMember = group.getGroupMembers().stream()
                 .filter(m -> m.getPayoutIndex() == 1)
                 .findFirst()
