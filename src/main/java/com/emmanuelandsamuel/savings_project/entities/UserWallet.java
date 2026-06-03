@@ -39,6 +39,9 @@ public class UserWallet extends BaseEntity {
     @Builder.Default
     private WalletStatus walletStatus = WalletStatus.ACTIVE;
 
+    @Column(nullable = false, unique = true)
+    private String userEmail;
+
     @OneToOne(mappedBy = "userWallet")
     private User user;
 }

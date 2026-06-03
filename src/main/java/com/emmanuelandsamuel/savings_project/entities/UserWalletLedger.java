@@ -1,6 +1,7 @@
 package com.emmanuelandsamuel.savings_project.entities;
 
 import com.emmanuelandsamuel.savings_project.enumerations.LedgerEntryType;
+
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -19,8 +20,8 @@ import java.util.UUID;
 public class UserWalletLedger extends BaseEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private int id;
 
     @Column(nullable = false)
     private UUID walletId;
@@ -31,17 +32,19 @@ public class UserWalletLedger extends BaseEntity {
     @Column(nullable = false)
     private BigDecimal balanceAfter;
 
-    @Version
-    private Long version;
+  
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private LedgerEntryType entryType;
 
     private String transactionReference;
+
     private String bank;
+
+    private String source;
     
-    @Column(nullable = false)
+    @Column(nullable = true)
     private BigDecimal fee;
 
 }

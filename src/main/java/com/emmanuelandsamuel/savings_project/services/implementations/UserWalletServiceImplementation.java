@@ -27,7 +27,7 @@ public class UserWalletServiceImplementation implements UserWalletService {
                     .findByEmail(email)
                     .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
 
-            UserWallet userWallet = UserWallet.builder().build();
+            UserWallet userWallet = UserWallet.builder().userEmail(email).build();
 
             user.setUserWallet(userWallet);
 

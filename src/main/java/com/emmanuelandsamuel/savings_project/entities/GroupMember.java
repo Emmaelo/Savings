@@ -26,17 +26,22 @@ public class GroupMember extends BaseEntity {
     @Column(nullable = false)
     private UUID userId;
 
+    @Column(nullable = false)
+    private String groupCode;
+
+    @Column(nullable = false)
+    private String userEmail;
 
     @Column(nullable = true)
-    private int payoutIndex;  // Position in rotation queue (1, 2, 3, ...)
+    private int payoutIndex; // Position in rotation queue (1, 2, 3, ...)
 
     @Column(nullable = false, precision = 19, scale = 2)
     @Builder.Default
-    private BigDecimal guaranteeBalance = BigDecimal.ZERO;  // Security deposit/guarantee
+    private BigDecimal guaranteeBalance = BigDecimal.ZERO; 
 
     @Column(nullable = false)
     @Builder.Default
-    private int missedContributions = 0;  // Count of missed payments
+    private int missedContributions = 0; // Count of missed payments
 
     @Column(nullable = false)
     @Builder.Default
@@ -44,7 +49,7 @@ public class GroupMember extends BaseEntity {
 
     @Column(nullable = false)
     @Builder.Default
-    private LocalDateTime nextDueDate = LocalDateTime.now();  // When their next contribution is due
+    private LocalDateTime nextDueDate = LocalDateTime.now(); // When their next contribution is due
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "group_id", nullable = false)

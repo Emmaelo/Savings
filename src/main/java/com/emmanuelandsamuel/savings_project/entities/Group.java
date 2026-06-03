@@ -39,6 +39,9 @@ public class Group extends BaseEntity {
     @Column(nullable = false)
     private UUID creatorId;
 
+    @Column(nullable = false)
+    private String creatorEmail;
+
     @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal amountToSave;
 
@@ -96,6 +99,11 @@ public class Group extends BaseEntity {
         if (groupWallet != null) {
             groupWallet.setGroup(this);
         }
+    }
+
+    public Group orElseThrow(Object object) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'orElseThrow'");
     }
 
 

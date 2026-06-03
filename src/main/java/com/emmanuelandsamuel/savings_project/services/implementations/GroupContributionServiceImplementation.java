@@ -8,7 +8,6 @@ import java.util.UUID;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import com.emmanuelandsamuel.savings_project.entities.CompanyWalletLedger;
 import com.emmanuelandsamuel.savings_project.entities.Group;
 import com.emmanuelandsamuel.savings_project.entities.GroupContributionRecord;
@@ -20,7 +19,6 @@ import com.emmanuelandsamuel.savings_project.entities.GroupContributionRecord.Co
 import com.emmanuelandsamuel.savings_project.enumerations.LedgerEntryType;
 import com.emmanuelandsamuel.savings_project.exceptions.ApplicationException;
 import com.emmanuelandsamuel.savings_project.repositories.CompanyWalletLedgerRepository;
-import com.emmanuelandsamuel.savings_project.repositories.CompanyWalletRepository;
 import com.emmanuelandsamuel.savings_project.repositories.GroupContributionRecordRepository;
 import com.emmanuelandsamuel.savings_project.repositories.GroupRepository;
 import com.emmanuelandsamuel.savings_project.repositories.GroupWalletLedgerRepository;
@@ -39,23 +37,23 @@ public class GroupContributionServiceImplementation implements GroupContribution
     private final GroupRepository groupRepository;
     private final GroupContributionRecordRepository groupContributionRepository;
     private static final BigDecimal FEE = BigDecimal.valueOf(500);
-    private static final UUID COMPANY_WALLET_ID = UUID.fromString("0820-0000-01");
     private final UserRepository userRepository;
     private final GroupWalletLedgerRepository groupWalletLedgerRepository;
-    private final CompanyWalletRepository companyWalletRepository;
     private final CompanyWalletLedgerRepository companyWalletLedgerRepository;
     private final UserWalletLedgerRepository userWalletLedgerRepository;
 
+
     @Transactional
     @Override
-    public String payContribution(UUID groupId) {
+    public String payContribution(String groupCode) {
         // Implementation for recording a member's contribution payment
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        // String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        String email = "emmanuelezeuchegbu@gmail.com";
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ApplicationException("User not found"));
 
-        Group group = groupRepository.findById(groupId)
+        Group group = groupRepository.findByGroupCode(groupCode)
                 .orElseThrow(() -> new ApplicationException("Group not found"));
 
         group.getGroupMembers().stream()
@@ -63,7 +61,7 @@ public class GroupContributionServiceImplementation implements GroupContribution
                 .findFirst()
                 .orElseThrow(() -> new ApplicationException("You are not a member of this group"));
 
-        GroupContributionRecord contribution = groupContributionRepository.findByGroupIdAndCycleNumberAndUserId(groupId,
+        GroupContributionRecord contribution = groupContributionRepository.findByGroupIdAndCycleNumberAndUserId(group.getId(),
                 group.getCurrentCycle(), user.getId());
 
         if (contribution.getContributionStatus().equals(ContributionStatus.PAID)) {
@@ -109,6 +107,8 @@ public class GroupContributionServiceImplementation implements GroupContribution
 
         return "Contribution recorded successfully.";
     }
+
+
 
     @Transactional
     @Override
@@ -203,20 +203,21 @@ public class GroupContributionServiceImplementation implements GroupContribution
                         .userId(payoutMember.getUserId())
                         .build());
 
-        companyWalletRepository.findById(COMPANY_WALLET_ID).ifPresent(companyWallet -> {
-            companyWallet.setAvailableBalance(companyWallet.getAvailableBalance().add(FEE));
+        // companyWalletRepository.findById(COMPANY_WALLET_ID).ifPresent(companyWallet -> {
+        //     companyWallet.setAvailableBalance(companyWallet.getAvailableBalance().add(FEE));
 
-            companyWalletRepository.save(companyWallet);
+        //     companyWalletRepository.save(companyWallet);
 
-            companyWalletLedgerRepository.save(
+           
+        // });
+
+         companyWalletLedgerRepository.save(
                     CompanyWalletLedger.builder()
-                            .walletId(companyWallet.getId())
+                        //     .walletId(companyWallet.getId())
                             .amount(FEE)
-                            .balanceAfter(companyWallet.getAvailableBalance())
+                        //     .balanceAfter(companyWallet.getAvailableBalance())
                             .entryType(LedgerEntryType.CREDIT)
                             .build());
-        });
-
         return true;
     }
 
@@ -226,7 +227,7 @@ public class GroupContributionServiceImplementation implements GroupContribution
 
             return true;
         }
-
+// This should be && an not a separate if check.
         if (records.stream()
                 .filter(r -> r.getContributionStatus().equals(GroupContributionRecord.ContributionStatus.PAID))
                 .count() == group.getMemberCount() - 1) {

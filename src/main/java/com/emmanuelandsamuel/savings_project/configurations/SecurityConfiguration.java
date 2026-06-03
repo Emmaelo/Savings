@@ -16,6 +16,8 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtGra
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -39,14 +41,19 @@ public class SecurityConfiguration {
                                 "/v3/api-docs/**",
                                 "/actuator/health"
                         ).permitAll()
-                        .anyRequest().authenticated()
-                )
-                .oauth2ResourceServer(oauth2 -> oauth2
-                        .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
+                        .anyRequest().permitAll()
+                        // .authenticated()
                 );
+                // .oauth2ResourceServer(oauth2 -> oauth2
+                //         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
+                // );
 
         return http.build();
 
+    }
+    @Bean
+    public ObjectMapper objectMapper() {
+        return new ObjectMapper();
     }
 
     @Bean

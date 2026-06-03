@@ -19,9 +19,9 @@ import java.util.UUID;
 public class GroupContributionRecord extends BaseEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(nullable = false, updatable = false)
-    private UUID id;
+    private int id;
 
     @Column(nullable = false, updatable = false)
     private UUID groupId;

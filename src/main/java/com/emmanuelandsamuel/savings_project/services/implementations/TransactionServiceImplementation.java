@@ -26,7 +26,6 @@ import com.emmanuelandsamuel.savings_project.enumerations.WalletStatus;
 import com.emmanuelandsamuel.savings_project.exceptions.ApplicationException;
 import com.emmanuelandsamuel.savings_project.exceptions.WalletNotFoundException;
 import com.emmanuelandsamuel.savings_project.repositories.CompanyWalletLedgerRepository;
-import com.emmanuelandsamuel.savings_project.repositories.CompanyWalletRepository;
 import com.emmanuelandsamuel.savings_project.repositories.TransactionRepository;
 import com.emmanuelandsamuel.savings_project.repositories.UserRepository;
 import com.emmanuelandsamuel.savings_project.repositories.UserWalletLedgerRepository;
@@ -44,11 +43,8 @@ public class TransactionServiceImplementation implements TransactionService {
     private final UserRepository userRepository;
     private final PaystackClient paystackClient;
     private final TransactionRepository transactionRepository;
-    private final CompanyWalletRepository companyWalletRepository;
     private final CompanyWalletLedgerRepository companyWalletLedgerRepository;
     private static final BigDecimal WITHDRAWAL_FEE = BigDecimal.valueOf(1000);
-    private static final UUID COMPANY_WALLET_ID = UUID.fromString("0820-0000-01");
-   
 
 
     //User to make payment into wallet, wallet balance is updated and ledger entry is created for the transaction. 
@@ -58,7 +54,8 @@ public class TransactionServiceImplementation implements TransactionService {
     @Override
     @Transactional
     public FundWalletResponse initPayment(FundWalletRequest request) {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        // String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        String email = "emmanuelezeuchegbu@gmail.com";
 
         User user = userRepository.findByEmail(email)
         .orElseThrow(() -> new ApplicationException("User not found"));
@@ -103,7 +100,7 @@ public class TransactionServiceImplementation implements TransactionService {
         transaction.setPayStackReference(request.getPayStackReference());
         transaction.setAuthorizationUrl(request.getAuthorizationUrl());
         transaction.setAccessCode(request.getAccessCode());
-        transaction.setStatus("ONGOING");
+        transaction.setStatus("PROCESSING");
         transactionRepository.save(transaction);
     }
 
@@ -159,6 +156,7 @@ public class TransactionServiceImplementation implements TransactionService {
                         .amount(amount)
                         .balanceAfter(wallet.getAvailableBalance())
                         .entryType(LedgerEntryType.CREDIT)
+                        .source("PAYSTACK - "+ transaction.getPayStackReference())
                         .build()
         );
     }
@@ -167,7 +165,8 @@ public class TransactionServiceImplementation implements TransactionService {
     @Transactional
     @Override
     public String withdrawFromUserWallet(WithdrawalRequest request) {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        // String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        String email = "emmanuelezeuchegbu@gmail.com";
 
         UserWallet userWallet = userWalletRepository.findByUserEmail(email)
         .orElseThrow(() -> new WalletNotFoundException("User wallet not found"));
@@ -194,23 +193,16 @@ public class TransactionServiceImplementation implements TransactionService {
                  .fee(WITHDRAWAL_FEE)
                  .balanceAfter(userWallet.getAvailableBalance())
                  .entryType(LedgerEntryType.DEBIT)
+                 .source("USER_WITHDRAWAL")
                  .build()
             );
 
-
-            companyWalletRepository.findById(COMPANY_WALLET_ID).ifPresent(companyWallet -> {
-                companyWallet.setAvailableBalance(companyWallet.getAvailableBalance().add(WITHDRAWAL_FEE));
-                companyWalletRepository.save(companyWallet);
-
-                companyWalletLedgerRepository.save(
+            companyWalletLedgerRepository.save(
                     CompanyWalletLedger.builder()
-                        .walletId(companyWallet.getId())
                         .amount(WITHDRAWAL_FEE)
-                        .balanceAfter(companyWallet.getAvailableBalance().add(WITHDRAWAL_FEE))
                         .entryType(LedgerEntryType.CREDIT)
                         .build()
                 );
-            });
         
             //Kafka and actual withdrawal 3rd party logic would go here..
         return "Withdraw Successful.";
@@ -218,8 +210,6 @@ public class TransactionServiceImplementation implements TransactionService {
 
 
     
-
-
     
     private String generateUniqueTransactionReference() {
     return "TXN_" + UUID.randomUUID().toString().substring(0, 12).toUpperCase();

@@ -3,7 +3,7 @@ package com.emmanuelandsamuel.savings_project.services.interfaces;
 import java.util.UUID;
 
 public interface GroupContributionService {
-    String payContribution(UUID groupId);
+    String payContribution(String groupCode);
     boolean processNextCycle(UUID groupId);
 
 }

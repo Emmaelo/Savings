@@ -1,9 +1,9 @@
-package com.emmanuelandsamuel.savings_project.services.interfaces;
+// package com.emmanuelandsamuel.savings_project.services.interfaces;
 
-import org.springframework.security.core.Authentication;
+// import org.springframework.security.core.Authentication;
 
-public interface JwtService {
+// public interface JwtService {
 
-    String generateToken(Authentication authentication);
+//     String generateToken(Authentication authentication);
 
-}
+// }

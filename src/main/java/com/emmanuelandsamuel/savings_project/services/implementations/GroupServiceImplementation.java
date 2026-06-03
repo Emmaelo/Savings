@@ -20,17 +20,18 @@ import com.emmanuelandsamuel.savings_project.entities.GroupMember;
 import com.emmanuelandsamuel.savings_project.entities.GroupWallet;
 import com.emmanuelandsamuel.savings_project.entities.GroupWalletLedger;
 import com.emmanuelandsamuel.savings_project.entities.User;
+import com.emmanuelandsamuel.savings_project.entities.UserWalletLedger;
 import com.emmanuelandsamuel.savings_project.enumerations.GroupSavingsType;
 import com.emmanuelandsamuel.savings_project.enumerations.GroupStatus;
 import com.emmanuelandsamuel.savings_project.enumerations.LedgerEntryType;
 import com.emmanuelandsamuel.savings_project.exceptions.ApplicationException;
 import com.emmanuelandsamuel.savings_project.repositories.CompanyWalletLedgerRepository;
-import com.emmanuelandsamuel.savings_project.repositories.CompanyWalletRepository;
-import com.emmanuelandsamuel.savings_project.repositories.GroupContributionRecordRepository;
 import com.emmanuelandsamuel.savings_project.repositories.GroupRepository;
 import com.emmanuelandsamuel.savings_project.repositories.GroupWalletLedgerRepository;
 import com.emmanuelandsamuel.savings_project.repositories.UserRepository;
+import com.emmanuelandsamuel.savings_project.repositories.UserWalletLedgerRepository;
 import com.emmanuelandsamuel.savings_project.services.interfaces.GroupService;
+import com.emmanuelandsamuel.savings_project.utilities.AppExtensions;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -42,12 +43,10 @@ public class GroupServiceImplementation implements GroupService {
     private final GroupRepository groupRepository;
     private final UserRepository userRepository;
     private final GroupWalletLedgerRepository groupWalletLedgerRepository;
-    private final CompanyWalletRepository companyWalletRepository;
     private final CompanyWalletLedgerRepository companyWalletLedgerRepository;
-    private final GroupContributionRecordRepository groupContributionRecordRepository;
-    private static final UUID COMPANY_WALLET_ID = UUID.fromString("0820-0000-01");
+    private final UserWalletLedgerRepository userWalletLedgerRepository;
     private static final BigDecimal FEE = BigDecimal.valueOf(500);
-    private final GroupContributionServiceImplementation groupContributionService;
+    
 
     @Override
     @Transactional
@@ -58,7 +57,9 @@ public class GroupServiceImplementation implements GroupService {
         if (groupRequest.getMemberCount() < 3) {
             return "Member count must be at least 3.";
         }
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        // String email =
+        // SecurityContextHolder.getContext().getAuthentication().getName();
+        String email = "ezeuchegbu@gmail.com";
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ApplicationException("User not found with email: " + email));
 
@@ -72,29 +73,31 @@ public class GroupServiceImplementation implements GroupService {
 
         GroupSavingsType groupSavingsType = GroupSavingsType.valueOf(groupRequest.getGroupSavingsType().toUpperCase());
 
+        String groupCode = generateUniqueGroupCode(groupSavingsType);
         Group group = Group.builder()
                 .name(groupRequest.getName())
                 .creatorId(user.getId())
+                .creatorEmail(email)
                 .amountToSave(groupRequest.getAmountToSave())
                 .groupSavingsType(groupSavingsType)
                 .memberCount(groupRequest.getMemberCount())
                 .groupStatus(GroupStatus.INACTIVE)
-                .guaranteeRequired(groupRequest.getGuaranteeRequired() == "true" ? true : false)
-                .groupCode(generateUniqueGroupCode(groupSavingsType))
+                .guaranteeRequired(groupRequest.getGuaranteeRequired().equalsIgnoreCase("true") ? true : false)
+                .groupCode(groupCode)
                 .build();
 
         group.addMember(
                 GroupMember.builder()
                         .userId(user.getId())
-                        .guaranteeBalance(groupRequest.getGuaranteeRequired() == "true" ? groupRequest.getAmountToSave()
-                                : BigDecimal.ZERO)
+                        .payoutIndex(1)
+                        .guaranteeBalance(BigDecimal.ZERO)
+                        .groupCode(groupCode)
+                        .userEmail(user.getEmail())
                         .build());
 
         user.getUserWallet().setAvailableBalance(
-                user.getUserWallet().getAvailableBalance().subtract(groupRequest.getAmountToSave()));
+                user.getUserWallet().getAvailableBalance().subtract(groupRequest.getAmountToSave().add(FEE)));
         userRepository.save(user);
-
-        // User wallet ledger is needed here
 
         group.assignGroupWallet(GroupWallet.builder().build());
         group.getGroupWallet().setAvailableBalance(
@@ -105,23 +108,27 @@ public class GroupServiceImplementation implements GroupService {
                 .walletId(group.getGroupWallet().getId())
                 .amount(groupRequest.getAmountToSave())
                 .balanceAfter(group.getGroupWallet().getAvailableBalance())
+                .source("Deposit by " + email)
                 .entryType(LedgerEntryType.CREDIT)
                 .userId(user.getId())
                 .build();
         groupWalletLedgerRepository.save(ledgerEntry);
 
-        companyWalletRepository.findById(COMPANY_WALLET_ID).ifPresent(companyWallet -> {
-            companyWallet.setAvailableBalance(companyWallet.getAvailableBalance().add(FEE));
-            companyWalletRepository.save(companyWallet);
+        userWalletLedgerRepository.save(
+                UserWalletLedger.builder()
+                        .walletId(user.getUserWallet().getId())
+                        .amount(groupRequest.getAmountToSave())
+                        .balanceAfter(user.getUserWallet().getAvailableBalance())
+                        .entryType(LedgerEntryType.DEBIT)
+                        .fee(FEE)
+                        .build());
 
-            companyWalletLedgerRepository.save(
-                    CompanyWalletLedger.builder()
-                            .walletId(companyWallet.getId())
-                            .amount(FEE)
-                            .balanceAfter(companyWallet.getAvailableBalance())
-                            .entryType(LedgerEntryType.CREDIT)
-                            .build());
-        });
+        companyWalletLedgerRepository.save(
+                CompanyWalletLedger.builder()
+                        .amount(FEE)
+                        .source("Group Created by " + email)
+                        .entryType(LedgerEntryType.CREDIT)
+                        .build());
 
         return "Group created successfully";
     }
@@ -129,7 +136,7 @@ public class GroupServiceImplementation implements GroupService {
     @Transactional
     @Override
     public String userJoinGroup(String groupNameCode) {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        String email = "emmanuelezeuchegbu@gmail.com";
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ApplicationException("User not found with email: " + email));
@@ -140,7 +147,7 @@ public class GroupServiceImplementation implements GroupService {
         }
         Group group = groupOptional.get();
 
-        if (user.getUserWallet().getAvailableBalance().compareTo(group.getAmountToSave()) < 0) {
+        if (user.getUserWallet().getAvailableBalance().compareTo(group.getAmountToSave().add(FEE)) < 0) {
             return "Insufficient funds in your wallet to join this group. Please fund your wallet and try again.";
         }
 
@@ -157,14 +164,20 @@ public class GroupServiceImplementation implements GroupService {
         }
 
         user.getUserWallet().setAvailableBalance(
-                user.getUserWallet().getAvailableBalance().subtract(group.getAmountToSave()));
+                user.getUserWallet().getAvailableBalance().subtract(group.getAmountToSave().add(FEE)));
 
         userRepository.save(user);
+
+        List<GroupMember> members = group.getGroupMembers();
+        int nextPayoutIndex = members.stream().mapToInt(GroupMember::getPayoutIndex).max().orElse(0) + 1;
 
         group.addMember(
                 GroupMember.builder()
                         .userId(user.getId())
-                        .guaranteeBalance(group.isGuaranteeRequired() ? group.getAmountToSave() : BigDecimal.ZERO)
+                        .payoutIndex(nextPayoutIndex)
+                        .guaranteeBalance(BigDecimal.ZERO)
+                        .groupCode(group.getGroupCode())
+                        .userEmail(user.getEmail())
                         .build());
         group.getGroupWallet().setAvailableBalance(
                 group.getGroupWallet().getAvailableBalance().add(group.getAmountToSave()));
@@ -177,9 +190,26 @@ public class GroupServiceImplementation implements GroupService {
                 .balanceAfter(group.getGroupWallet().getAvailableBalance())
                 .entryType(LedgerEntryType.CREDIT)
                 .userId(user.getId())
+                .source("Deposit by " + email)
                 .build();
 
         groupWalletLedgerRepository.save(ledgerEntry);
+
+        userWalletLedgerRepository.save(
+                UserWalletLedger.builder()
+                        .walletId(user.getUserWallet().getId())
+                        .amount(group.getAmountToSave())
+                        .balanceAfter(user.getUserWallet().getAvailableBalance())
+                        .entryType(LedgerEntryType.DEBIT)
+                        .fee(FEE)
+                        .build());
+
+        companyWalletLedgerRepository.save(
+                CompanyWalletLedger.builder()
+                        .amount(FEE)
+                        .source("Group Joined by " + email)
+                        .entryType(LedgerEntryType.CREDIT)
+                        .build());
 
         return "Joined Group successfully";
     }
@@ -187,7 +217,9 @@ public class GroupServiceImplementation implements GroupService {
     @Override
     @Transactional
     public String userLeaveGroup(String groupNameCode) {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        // String email =
+        // SecurityContextHolder.getContext().getAuthentication().getName();
+        String email = "emmanuel@gmail.com";
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ApplicationException("User not found with email: " + email));
@@ -232,6 +264,7 @@ public class GroupServiceImplementation implements GroupService {
                 .amount(group.getAmountToSave())
                 .balanceAfter(group.getGroupWallet().getAvailableBalance())
                 .entryType(LedgerEntryType.DEBIT)
+                .source("Left group by " + email)
                 .userId(user.getId())
                 .build();
 
@@ -242,7 +275,9 @@ public class GroupServiceImplementation implements GroupService {
 
     @Override
     public String activateGroup(String groupNameCode) {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        // String email =
+        // SecurityContextHolder.getContext().getAuthentication().getName();
+        String email = "ezeuchegbu@gmail.com";
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ApplicationException("User not found with email: " + email));
@@ -267,58 +302,50 @@ public class GroupServiceImplementation implements GroupService {
             return "At least 3 members are required to activate the group.";
         }
 
+        if (group.isGuaranteeRequired()) {
+            for (GroupMember member : group.getGroupMembers()) {
+                if (member.getGuaranteeBalance().compareTo(
+                        group.getAmountToSave().multiply(BigDecimal.valueOf(group.getGroupMembers().size()))) < 0) {
+                    return "All members must have a sufficient guaranteed balance to activate the group.";
+                }
+            }
+        }
+
         if (group.getGroupMembers().size() < group.getMemberCount()) {
             group.setMemberCount(group.getGroupMembers().size());
         }
 
-        if (group.isGuaranteeRequired()) {
-            for (GroupMember member : group.getGroupMembers()) {
-                if (member.getGuaranteeBalance().compareTo(
-                        group.getAmountToSave().multiply(BigDecimal.valueOf(group.getGroupMembers().size()))) == 0) {
-                    return "All members must have a guaranteed balance equal to number of members to activate the group.";
-                }
-            }
-        }
         group.setGroupStatus(GroupStatus.ACTIVE);
-        group.setCurrentPayoutIndex(1);
-        group.setNextContributionDate(LocalDate.now());
+        group.setNextContributionDate(AppExtensions.calculateNextDate(LocalDate.now(), group.getGroupSavingsType()));
         groupRepository.save(group);
 
-       boolean cycleProcessed = groupContributionService.processNextCycle(group.getId());
+        GroupMember payoutMember = group.getGroupMembers().stream()
+                .filter(m -> m.getPayoutIndex() == 1)
+                .findFirst()
+                .orElseThrow(() -> new ApplicationException("Payout member not found for current payout index"));
 
-     // This or instead, return an object, with boolean and the updated next contribution date.
-      Group updatedGroup = groupRepository.findById(group.getId()).orElseThrow(() -> new ApplicationException("Group not found"));
-      
-       if(cycleProcessed) {
-        List<GroupContributionRecord> records = new ArrayList<>();
+        boolean payoutSuccessful = payMember(group, payoutMember);
 
-        for (GroupMember member : group.getGroupMembers()) {
-            if(member.getPayoutIndex() != 2) {
-                GroupContributionRecord record = GroupContributionRecord.builder()
-                        .groupId(group.getId())
-                        .cycleNumber(group.getCurrentCycle())
-                        .userId(member.getUserId())
-                        .amount(group.getAmountToSave())
-                        .contributionStatus(ContributionStatus.DUE)
-                        .nextCycleDate(updatedGroup.getNextContributionDate())
-                        .build();
-                records.add(record);
-            } 
+        if (!payoutSuccessful) {
+            log.error("Failed to process payout for member: {}", payoutMember.getId());
+            return "Failed to process Payout";
         }
-        groupContributionRecordRepository.saveAll(records);
 
-         return "Group activated successfully.";
-       }
+        payoutMember.setHasReceivedCurrentCycle(true);
 
+        group.setCurrentPayoutIndex(2);
 
-       return "Failed to activate group.";
+        groupRepository.save(group);
+
+        return "Group Activated.";
     }
-
 
     @Transactional
     @Override
     public String deleteGroup(String groupNameCode) {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        // String email =
+        // SecurityContextHolder.getContext().getAuthentication().getName();
+        String email = "emmanuelezeuchegbu@gmail.com";
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ApplicationException("User not found with email: " + email));
@@ -337,24 +364,42 @@ public class GroupServiceImplementation implements GroupService {
             return "Group is Closed, Please contact support for more information.";
         }
 
-        List<GroupMember> members = group.getGroupMembers();
-        if(members != null && !members.isEmpty()) {
+        List<GroupMember> members = new ArrayList<>(group.getGroupMembers());
+        if (members != null && !members.isEmpty()) {
             for (GroupMember member : members) {
                 User memberUser = userRepository.findById(member.getUserId())
                         .orElseThrow(() -> new ApplicationException("User not found with ID: " + member.getUserId()));
+
+                UserWalletLedger userWalletLedger = new UserWalletLedger();
+
                 if (member.getGuaranteeBalance().compareTo(BigDecimal.ZERO) > 0) {
                     memberUser.getUserWallet().setAvailableBalance(
                             memberUser.getUserWallet().getAvailableBalance().add(member.getGuaranteeBalance()));
+
+                    userWalletLedger.setWalletId(memberUser.getUserWallet().getId());
+                    userWalletLedger.setAmount(member.getGuaranteeBalance());
+                    userWalletLedger.setEntryType(LedgerEntryType.CREDIT);
+                    userWalletLedger.setBalanceAfter(
+                            memberUser.getUserWallet().getAvailableBalance().add(member.getGuaranteeBalance()));
+
+                    userWalletLedgerRepository.save(userWalletLedger);
                 }
+
                 if (group.getGroupWallet().getAvailableBalance().compareTo(group.getAmountToSave()) >= 0) {
                     group.getGroupWallet().setAvailableBalance(
                             group.getGroupWallet().getAvailableBalance().subtract(group.getAmountToSave()));
                     memberUser.getUserWallet().setAvailableBalance(
                             memberUser.getUserWallet().getAvailableBalance().add(group.getAmountToSave()));
+
+                    userWalletLedger.setWalletId(memberUser.getUserWallet().getId());
+                    userWalletLedger.setAmount(group.getAmountToSave());
+                    userWalletLedger.setEntryType(LedgerEntryType.CREDIT);
+                    userWalletLedger.setBalanceAfter(
+                            memberUser.getUserWallet().getAvailableBalance().add(group.getAmountToSave()));
+
+                    userWalletLedgerRepository.save(userWalletLedger);
                 }
                 userRepository.save(memberUser);
-                group.removeMember(member);
-                groupRepository.save(group);
             }
         }
 
@@ -363,8 +408,6 @@ public class GroupServiceImplementation implements GroupService {
         return "Group deleted successfully.";
     }
 
-
- 
     private String generateUniqueGroupCode(GroupSavingsType savingsType) {
 
         String prefix;
@@ -399,6 +442,50 @@ public class GroupServiceImplementation implements GroupService {
         } while (groupRepository.existsByGroupCode(groupCode));
 
         return groupCode;
+    }
+
+    private boolean payMember(Group group, GroupMember payoutMember) {
+
+        BigDecimal payoutAmount = group.getGroupWallet().getAvailableBalance().subtract(FEE);
+
+        group.getGroupWallet().setAvailableBalance(BigDecimal.ZERO);
+
+        User user = userRepository.findById(payoutMember.getUserId())
+                .orElseThrow(() -> new ApplicationException("User not found"));
+
+        user.getUserWallet().setAvailableBalance(user.getUserWallet().getAvailableBalance().add(payoutAmount));
+
+        userRepository.save(user);
+
+        userWalletLedgerRepository.save(
+                UserWalletLedger.builder()
+                        .walletId(user.getUserWallet().getId())
+                        .amount(payoutAmount)
+                        .balanceAfter(user.getUserWallet().getAvailableBalance())
+                        .entryType(LedgerEntryType.CREDIT)
+                        .fee(FEE)
+                        .bank(null)
+                        .source("GROUP PAYOUT")
+                        .transactionReference(null)
+                        .build());
+
+        groupWalletLedgerRepository.save(
+                GroupWalletLedger.builder()
+                        .walletId(group.getGroupWallet().getId())
+                        .amount(payoutAmount)
+                        .balanceAfter(group.getGroupWallet().getAvailableBalance())
+                        .entryType(LedgerEntryType.DEBIT)
+                        .source("Group Payout to " + user.getEmail())
+                        .userId(payoutMember.getUserId())
+                        .build());
+
+        companyWalletLedgerRepository.save(
+                CompanyWalletLedger.builder()
+                        .amount(FEE)
+                        .source("Group Payout to" + user.getEmail())
+                        .entryType(LedgerEntryType.CREDIT)
+                        .build());
+        return true;
     }
 
 }

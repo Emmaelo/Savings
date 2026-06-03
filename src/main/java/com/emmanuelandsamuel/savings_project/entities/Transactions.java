@@ -3,6 +3,7 @@ package com.emmanuelandsamuel.savings_project.entities;
 import java.math.BigDecimal;
 import java.util.UUID;
 
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Enumerated;
@@ -60,7 +61,7 @@ public class Transactions {
     private String transactionType;
 
     @Column(nullable = false)
-    @Enumerated(jakarta.persistence.EnumType.STRING)
+    // @Enumerated(jakarta.persistence.EnumType.STRING)
     private String status;
 
     @ManyToOne(fetch = FetchType.LAZY)

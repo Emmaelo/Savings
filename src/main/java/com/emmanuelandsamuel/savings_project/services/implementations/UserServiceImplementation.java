@@ -1,272 +1,272 @@
-package com.emmanuelandsamuel.savings_project.services.implementations;
+// package com.emmanuelandsamuel.savings_project.services.implementations;
 
-import com.emmanuelandsamuel.savings_project.dtos.requests.*;
-import com.emmanuelandsamuel.savings_project.dtos.responses.ApiResponse;
-import com.emmanuelandsamuel.savings_project.dtos.responses.LoginResponse;
-import com.emmanuelandsamuel.savings_project.entities.User;
-import com.emmanuelandsamuel.savings_project.enumerations.IdempotencyStatus;
-import com.emmanuelandsamuel.savings_project.enumerations.Role;
-import com.emmanuelandsamuel.savings_project.exceptions.ApplicationException;
-import com.emmanuelandsamuel.savings_project.repositories.UserRepository;
-import com.emmanuelandsamuel.savings_project.services.interfaces.*;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+// import com.emmanuelandsamuel.savings_project.dtos.requests.*;
+// import com.emmanuelandsamuel.savings_project.dtos.responses.ApiResponse;
+// import com.emmanuelandsamuel.savings_project.dtos.responses.LoginResponse;
+// import com.emmanuelandsamuel.savings_project.entities.User;
+// import com.emmanuelandsamuel.savings_project.enumerations.IdempotencyStatus;
+// import com.emmanuelandsamuel.savings_project.enumerations.Role;
+// import com.emmanuelandsamuel.savings_project.exceptions.ApplicationException;
+// import com.emmanuelandsamuel.savings_project.repositories.UserRepository;
+// import com.emmanuelandsamuel.savings_project.services.interfaces.*;
+// import lombok.RequiredArgsConstructor;
+// import lombok.extern.slf4j.Slf4j;
+// import org.springframework.security.authentication.AuthenticationManager;
+// import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+// import org.springframework.security.core.Authentication;
+// import org.springframework.security.crypto.password.PasswordEncoder;
+// import org.springframework.stereotype.Service;
+// import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.UUID;
+// import java.time.LocalDateTime;
+// import java.util.Objects;
+// import java.util.Optional;
+// import java.util.UUID;
 
-import static com.emmanuelandsamuel.savings_project.utilities.AppExtensions.*;
+// import static com.emmanuelandsamuel.savings_project.utilities.AppExtensions.*;
 
-@Service
-@RequiredArgsConstructor
-@Slf4j
-public class UserServiceImplementation implements UserService {
+// @Service
+// @RequiredArgsConstructor
+// @Slf4j
+// public class UserServiceImplementation implements UserService {
 
-    private final UserRepository userRepository;
+//     private final UserRepository userRepository;
 
-    private final PasswordEncoder passwordEncoder;
+//     private final PasswordEncoder passwordEncoder;
 
-    private final IdempotencyService idempotencyService;
+//     private final IdempotencyService idempotencyService;
 
-    private final EmailVerificationService emailVerificationService;
+//     private final EmailVerificationService emailVerificationService;
 
-    private final UserWalletService userWalletService;
+//     private final UserWalletService userWalletService;
 
-    private final AuthenticationManager authenticationManager;
+//     private final AuthenticationManager authenticationManager;
 
-    private final JwtService jwtService;
+//     private final JwtService jwtService;
 
-    @Transactional
-    @Override
-    public ApiResponse<String> registerUser(String idempotencyKey, UserRegistrationRequest userRegistrationRequest) {
+//     @Transactional
+//     @Override
+//     public ApiResponse<String> registerUser(String idempotencyKey, UserRegistrationRequest userRegistrationRequest) {
 
-        try {
+//         try {
 
-            String jsonPayload = serialize(userRegistrationRequest);
+//             String jsonPayload = serialize(userRegistrationRequest);
 
-            String requestFingerprint = generateHash(Objects.requireNonNull(jsonPayload));
+//             String requestFingerprint = generateHash(Objects.requireNonNull(jsonPayload));
 
-            IdempotencyKeyCheckRequest<String> idempotencyKeyCheckRequest =
-                    IdempotencyKeyCheckRequest.<String>builder()
-                            .idempotencyKey(idempotencyKey)
-                            .incomingFingerprint(requestFingerprint)
-                            .eventType(USER_REGISTERED_EVENT)
-                            .responseType(String.class)
-                            .build();
+//             IdempotencyKeyCheckRequest<String> idempotencyKeyCheckRequest =
+//                     IdempotencyKeyCheckRequest.<String>builder()
+//                             .idempotencyKey(idempotencyKey)
+//                             .incomingFingerprint(requestFingerprint)
+//                             .eventType(USER_REGISTERED_EVENT)
+//                             .responseType(String.class)
+//                             .build();
 
-            Optional<ApiResponse<String>> cachedResponse = idempotencyService.checkKey(idempotencyKeyCheckRequest);
+//             Optional<ApiResponse<String>> cachedResponse = idempotencyService.checkKey(idempotencyKeyCheckRequest);
 
-            if (cachedResponse.isPresent()) {
+//             if (cachedResponse.isPresent()) {
 
-                log.info("Idempotent request detected. Returning cached response for key: {}", idempotencyKey);
+//                 log.info("Idempotent request detected. Returning cached response for key: {}", idempotencyKey);
 
-                return cachedResponse.get();
+//                 return cachedResponse.get();
 
-            }
+//             }
 
-            boolean isEmailVerified = emailVerificationService.isEmailVerified(userRegistrationRequest.getEmail());
+//             boolean isEmailVerified = emailVerificationService.isEmailVerified(userRegistrationRequest.getEmail());
 
-            if (!isEmailVerified)
-                return ApiResponse.error("Email address is not verified. Please verify your email before registering.");
+//             if (!isEmailVerified)
+//                 return ApiResponse.error("Email address is not verified. Please verify your email before registering.");
 
-            boolean emailExists = userRepository.existsByEmail(userRegistrationRequest.getEmail());
+//             boolean emailExists = userRepository.existsByEmail(userRegistrationRequest.getEmail());
 
-            if (emailExists)
-                return ApiResponse.error("Email address is already in use. Please use a different email.");
+//             if (emailExists)
+//                 return ApiResponse.error("Email address is already in use. Please use a different email.");
 
-            boolean doesPasswordMatch = userRegistrationRequest.getPassword().equals(userRegistrationRequest.getConfirmPassword());
+//             boolean doesPasswordMatch = userRegistrationRequest.getPassword().equals(userRegistrationRequest.getConfirmPassword());
 
-            if (!doesPasswordMatch)
-                return ApiResponse.error("Password and confirm password do not match.");
+//             if (!doesPasswordMatch)
+//                 return ApiResponse.error("Password and confirm password do not match.");
 
-            SaveIdempotencyKeyRequest saveIdempotencyKeyRequest = SaveIdempotencyKeyRequest
-                    .builder()
-                    .id(UUID.randomUUID())
-                    .idempotencyKey(idempotencyKey)
-                    .eventType(USER_REGISTERED_EVENT)
-                    .requestFingerprint(requestFingerprint)
-                    .idempotencyStatus(IdempotencyStatus.PROCESSING)
-                    .responseMessage("Your registration request is currently being processed. Please wait a moment and try again.")
-                    .expiresAt(LocalDateTime.now().plusMinutes(20L))
-                    .build();
+//             SaveIdempotencyKeyRequest saveIdempotencyKeyRequest = SaveIdempotencyKeyRequest
+//                     .builder()
+//                     .id(UUID.randomUUID())
+//                     .idempotencyKey(idempotencyKey)
+//                     .eventType(USER_REGISTERED_EVENT)
+//                     .requestFingerprint(requestFingerprint)
+//                     .idempotencyStatus(IdempotencyStatus.PROCESSING)
+//                     .responseMessage("Your registration request is currently being processed. Please wait a moment and try again.")
+//                     .expiresAt(LocalDateTime.now().plusMinutes(20L))
+//                     .build();
 
-            int insertedIdempotencyRecordRows = idempotencyService.saveKey(saveIdempotencyKeyRequest);
+//             int insertedIdempotencyRecordRows = idempotencyService.saveKey(saveIdempotencyKeyRequest);
 
-            if (insertedIdempotencyRecordRows == 0) {
+//             if (insertedIdempotencyRecordRows == 0) {
 
-                log.info("Another request with the same idempotency key is already being processed. IdempotencyKey: {}", idempotencyKey);
+//                 log.info("Another request with the same idempotency key is already being processed. IdempotencyKey: {}", idempotencyKey);
 
-                return ApiResponse.success("Your registration request is currently being processed. Please wait a moment and try again.");
+//                 return ApiResponse.success("Your registration request is currently being processed. Please wait a moment and try again.");
 
-            }
+//             }
 
-            int insertedUserRows = userRepository.insertUserIgnoreConflict(
-                    UUID.randomUUID(),
-                    userRegistrationRequest.getEmail(),
-                    userRegistrationRequest.getFirstname(),
-                    userRegistrationRequest.getLastname(),
-                    passwordEncoder.encode(userRegistrationRequest.getPassword()),
-                    userRegistrationRequest.getPhoneNumber(),
-                    false,
-                    0,
-                    Role.USER.name()
-            );
+//             int insertedUserRows = userRepository.insertUserIgnoreConflict(
+//                     UUID.randomUUID(),
+//                     userRegistrationRequest.getEmail(),
+//                     userRegistrationRequest.getFirstname(),
+//                     userRegistrationRequest.getLastname(),
+//                     passwordEncoder.encode(userRegistrationRequest.getPassword()),
+//                     userRegistrationRequest.getPhoneNumber(),
+//                     false,
+//                     0,
+//                     Role.USER.name()
+//             );
 
-            if (insertedUserRows == 0) {
+//             if (insertedUserRows == 0) {
 
-                log.info(
-                        "Concurrent registration attempt detected for email {}. IdempotencyKey: {}. Another request has already created a user record for this email.",
-                        userRegistrationRequest.getEmail(),
-                        idempotencyKey
-                );
+//                 log.info(
+//                         "Concurrent registration attempt detected for email {}. IdempotencyKey: {}. Another request has already created a user record for this email.",
+//                         userRegistrationRequest.getEmail(),
+//                         idempotencyKey
+//                 );
 
-                MarkIdempotencyKeyAsFailedRequest markIdempotencyKeyAsFailedRequest = MarkIdempotencyKeyAsFailedRequest
-                        .builder()
-                        .idempotencyKey(idempotencyKey)
-                        .eventType(USER_REGISTERED_EVENT)
-                        .responseMessage("Email address is already in use. Please use a different email.")
-                        .build();
+//                 MarkIdempotencyKeyAsFailedRequest markIdempotencyKeyAsFailedRequest = MarkIdempotencyKeyAsFailedRequest
+//                         .builder()
+//                         .idempotencyKey(idempotencyKey)
+//                         .eventType(USER_REGISTERED_EVENT)
+//                         .responseMessage("Email address is already in use. Please use a different email.")
+//                         .build();
 
-                idempotencyService.markKeyAsFailed(markIdempotencyKeyAsFailedRequest);
+//                 idempotencyService.markKeyAsFailed(markIdempotencyKeyAsFailedRequest);
 
-                return ApiResponse.error("Email address is already in use. Please use a different email.");
+//                 return ApiResponse.error("Email address is already in use. Please use a different email.");
 
-            }
+//             }
 
-            userWalletService.createUserWallet(userRegistrationRequest.getEmail());
+//             userWalletService.createUserWallet(userRegistrationRequest.getEmail());
 
-            MarkIdempotencyKeyAsSuccessRequest<String> markIdempotencyKeyAsSuccessRequest =
-                    MarkIdempotencyKeyAsSuccessRequest.<String>builder()
-                            .idempotencyKey(idempotencyKey)
-                            .eventType(USER_REGISTERED_EVENT)
-                            .responseMessage("User registered successfully.")
-                            .responseBody(null)
-                            .build();
+//             MarkIdempotencyKeyAsSuccessRequest<String> markIdempotencyKeyAsSuccessRequest =
+//                     MarkIdempotencyKeyAsSuccessRequest.<String>builder()
+//                             .idempotencyKey(idempotencyKey)
+//                             .eventType(USER_REGISTERED_EVENT)
+//                             .responseMessage("User registered successfully.")
+//                             .responseBody(null)
+//                             .build();
 
-            idempotencyService.markKeyAsSuccess(markIdempotencyKeyAsSuccessRequest);
+//             idempotencyService.markKeyAsSuccess(markIdempotencyKeyAsSuccessRequest);
 
-            return ApiResponse.success("User registered successfully.");
+//             return ApiResponse.success("User registered successfully.");
 
-        } catch (Exception ex) {
+//         } catch (Exception ex) {
 
-            log.error("An error occurred while registering user: {}", ex.getMessage(), ex);
+//             log.error("An error occurred while registering user: {}", ex.getMessage(), ex);
 
-            throw new ApplicationException("Registration failed. Please try again later.");
+//             throw new ApplicationException("Registration failed. Please try again later.");
 
-        }
-    }
+//         }
+//     }
 
-    @Transactional
-    @Override
-    public ApiResponse<LoginResponse> loginUser(String idempotencyKey, UserLoginRequest userLoginRequest) {
+//     @Transactional
+//     @Override
+//     public ApiResponse<LoginResponse> loginUser(String idempotencyKey, UserLoginRequest userLoginRequest) {
 
-        Optional<User> optionalUser = userRepository.findByEmail(userLoginRequest.getEmail());
+//         Optional<User> optionalUser = userRepository.findByEmail(userLoginRequest.getEmail());
 
-        if (optionalUser.isEmpty())
-            return ApiResponse.error("Invalid email or password.");
+//         if (optionalUser.isEmpty())
+//             return ApiResponse.error("Invalid email or password.");
 
-        User user = optionalUser.get();
+//         User user = optionalUser.get();
 
-        boolean isAccountLocked = user.isAccountLocked();
+//         boolean isAccountLocked = user.isAccountLocked();
 
-        if (isAccountLocked)
-            return ApiResponse.error("Your account is locked due to multiple failed login attempts. Please try again later or reset your password.");
+//         if (isAccountLocked)
+//             return ApiResponse.error("Your account is locked due to multiple failed login attempts. Please try again later or reset your password.");
 
-        boolean doesPasswordMatch = passwordEncoder.matches(userLoginRequest.getPassword(), user.getPassword());
+//         boolean doesPasswordMatch = passwordEncoder.matches(userLoginRequest.getPassword(), user.getPassword());
 
-        if (!doesPasswordMatch) {
+//         if (!doesPasswordMatch) {
 
-            String jsonPayload = serialize(userLoginRequest);
+//             String jsonPayload = serialize(userLoginRequest);
 
-            String requestFingerprint = generateHash(Objects.requireNonNull(jsonPayload));
+//             String requestFingerprint = generateHash(Objects.requireNonNull(jsonPayload));
 
-            IdempotencyKeyCheckRequest<LoginResponse> idempotencyKeyCheckRequest =
-                    IdempotencyKeyCheckRequest.<LoginResponse>builder()
-                            .idempotencyKey(idempotencyKey)
-                            .incomingFingerprint(requestFingerprint)
-                            .eventType(USER_LOGIN_EVENT)
-                            .responseType(LoginResponse.class)
-                            .build();
+//             IdempotencyKeyCheckRequest<LoginResponse> idempotencyKeyCheckRequest =
+//                     IdempotencyKeyCheckRequest.<LoginResponse>builder()
+//                             .idempotencyKey(idempotencyKey)
+//                             .incomingFingerprint(requestFingerprint)
+//                             .eventType(USER_LOGIN_EVENT)
+//                             .responseType(LoginResponse.class)
+//                             .build();
 
-            Optional<ApiResponse<LoginResponse>> cachedResponse = idempotencyService.checkKey(idempotencyKeyCheckRequest);
+//             Optional<ApiResponse<LoginResponse>> cachedResponse = idempotencyService.checkKey(idempotencyKeyCheckRequest);
 
-            if (cachedResponse.isPresent()) {
+//             if (cachedResponse.isPresent()) {
 
-                log.info("Idempotent failed login attempt detected. Returning cached response for key: {}", idempotencyKey);
+//                 log.info("Idempotent failed login attempt detected. Returning cached response for key: {}", idempotencyKey);
 
-                return cachedResponse.get();
+//                 return cachedResponse.get();
 
-            }
+//             }
 
-            int currentFailedLoginAttempts = user.getFailedLoginAttempts();
+//             int currentFailedLoginAttempts = user.getFailedLoginAttempts();
 
-            int updatedFailedLoginAttempts = currentFailedLoginAttempts + 1;
+//             int updatedFailedLoginAttempts = currentFailedLoginAttempts + 1;
 
-            int remainingLoginAttempts = MAX_LOGIN_ATTEMPTS - updatedFailedLoginAttempts;
+//             int remainingLoginAttempts = MAX_LOGIN_ATTEMPTS - updatedFailedLoginAttempts;
 
-            if (remainingLoginAttempts <= 0) {
+//             if (remainingLoginAttempts <= 0) {
 
-                user.setAccountLocked(true);
+//                 user.setAccountLocked(true);
 
-                userRepository.save(user);
+//                 userRepository.save(user);
 
-                return ApiResponse.error("Your account has been locked due to too many failed login attempts. Please reset your password or contact support.");
+//                 return ApiResponse.error("Your account has been locked due to too many failed login attempts. Please reset your password or contact support.");
 
-            }
+//             }
 
-            user.setFailedLoginAttempts(updatedFailedLoginAttempts);
+//             user.setFailedLoginAttempts(updatedFailedLoginAttempts);
 
-            userRepository.save(user);
+//             userRepository.save(user);
 
-            SaveIdempotencyKeyRequest saveIdempotencyKeyRequest = SaveIdempotencyKeyRequest
-                    .builder()
-                    .id(UUID.randomUUID())
-                    .idempotencyKey(idempotencyKey)
-                    .eventType(USER_LOGIN_EVENT)
-                    .requestFingerprint(requestFingerprint)
-                    .idempotencyStatus(IdempotencyStatus.FAILURE)
-                    .responseMessage("Invalid email or password. You have " + remainingLoginAttempts + " more attempt(s) before your account gets locked.")
-                    .expiresAt(LocalDateTime.now().plusMinutes(20L))
-                    .build();
+//             SaveIdempotencyKeyRequest saveIdempotencyKeyRequest = SaveIdempotencyKeyRequest
+//                     .builder()
+//                     .id(UUID.randomUUID())
+//                     .idempotencyKey(idempotencyKey)
+//                     .eventType(USER_LOGIN_EVENT)
+//                     .requestFingerprint(requestFingerprint)
+//                     .idempotencyStatus(IdempotencyStatus.FAILURE)
+//                     .responseMessage("Invalid email or password. You have " + remainingLoginAttempts + " more attempt(s) before your account gets locked.")
+//                     .expiresAt(LocalDateTime.now().plusMinutes(20L))
+//                     .build();
 
-            int insertedIdempotencyRecordRows = idempotencyService.saveKey(saveIdempotencyKeyRequest);
+//             int insertedIdempotencyRecordRows = idempotencyService.saveKey(saveIdempotencyKeyRequest);
 
-            if (insertedIdempotencyRecordRows == 0) {
+//             if (insertedIdempotencyRecordRows == 0) {
 
-                log.info("Another failed login attempt with the same idempotency key is already being processed. IdempotencyKey: {}", idempotencyKey);
+//                 log.info("Another failed login attempt with the same idempotency key is already being processed. IdempotencyKey: {}", idempotencyKey);
 
-            }
+//             }
 
-            return ApiResponse.error("Invalid email or password. You have " + remainingLoginAttempts + " more attempt(s) before your account gets locked.");
+//             return ApiResponse.error("Invalid email or password. You have " + remainingLoginAttempts + " more attempt(s) before your account gets locked.");
 
-        }
+//         }
 
-        user.setFailedLoginAttempts(0);
+//         user.setFailedLoginAttempts(0);
 
-        user.setAccountLocked(false);
+//         user.setAccountLocked(false);
 
-        var usernamePasswordAuthenticationToken = new UsernamePasswordAuthenticationToken(userLoginRequest.getEmail(), userLoginRequest.getPassword());
+//         var usernamePasswordAuthenticationToken = new UsernamePasswordAuthenticationToken(userLoginRequest.getEmail(), userLoginRequest.getPassword());
 
-        Authentication authentication = authenticationManager.authenticate(usernamePasswordAuthenticationToken);
+//         Authentication authentication = authenticationManager.authenticate(usernamePasswordAuthenticationToken);
 
-        String jwtToken = jwtService.generateToken(authentication);
+//         String jwtToken = jwtService.generateToken(authentication);
 
-        LoginResponse loginResponse = LoginResponse
-                .builder()
-                .userId(user.getId())
-                .jwtToken(jwtToken)
-                .loginDate(LocalDateTime.now())
-                .build();
+//         LoginResponse loginResponse = LoginResponse
+//                 .builder()
+//                 .userId(user.getId())
+//                 .jwtToken(jwtToken)
+//                 .loginDate(LocalDateTime.now())
+//                 .build();
 
-        return ApiResponse.success("Login successful.", loginResponse);
+//         return ApiResponse.success("Login successful.", loginResponse);
 
-    }
-}
+//     }
+// }

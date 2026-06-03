@@ -37,6 +37,7 @@ public class GroupWallet extends BaseEntity {
 
     @Column(nullable = false)
     @Builder.Default
+    @Enumerated(EnumType.STRING)
     private WalletStatus walletStatus = WalletStatus.ACTIVE;
 
     @OneToOne(mappedBy = "groupWallet", fetch = FetchType.LAZY)

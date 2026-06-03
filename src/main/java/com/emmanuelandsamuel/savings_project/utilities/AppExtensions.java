@@ -34,7 +34,8 @@ public class AppExtensions {
 
         try {
 
-            if (object == null) return null;
+            if (object == null)
+                return null;
 
             return objectMapper.writeValueAsString(object);
 
@@ -66,7 +67,8 @@ public class AppExtensions {
 
         try {
 
-            if (json == null || json.isEmpty()) return null;
+            if (json == null || json.isEmpty())
+                return null;
 
             return objectMapper.readValue(json, type);
 
@@ -87,7 +89,8 @@ public class AppExtensions {
 
             StringBuilder hex = new StringBuilder();
 
-            for (byte b : hash) hex.append(String.format("%02x", b));
+            for (byte b : hash)
+                hex.append(String.format("%02x", b));
 
             return hex.toString();
 
@@ -110,47 +113,49 @@ public class AppExtensions {
                 <body style="font-family: Arial, sans-serif; padding: 20px; background-color: #f5f5f5;">
                     <div style="max-width: 600px; margin: 0 auto; background-color: white; padding: 30px; border-radius: 5px;">
                         <h2 style="color: #2196F3;">Verify Your Email Address</h2>
-                
+
                         <p>Thank you for registering with us! To complete your registration, please verify your email address.</p>
-                
+
                         <p>Use the verification code below to activate your account:</p>
-                
+
                         <div style="background-color: #f0f8ff; padding: 20px; border-radius: 4px; margin: 20px 0; text-align: center;">
                             <h1 style="color: #2196F3; margin: 0; font-size: 32px; letter-spacing: 5px;">
-                """ + verificationCode + """
-                            </h1>
-                        </div>
-                
-                        <p>Enter this code on the verification page to activate your account.</p>
-                
-                        <p style="background-color: #fff3cd; padding: 15px; border-left: 4px solid #ff9800; border-radius: 4px; margin: 20px 0;">
-                            <strong>Important:</strong> This verification code will expire in <strong>15 minutes</strong>.
-                        </p>
-                
-                        <p>If you did not request this verification code, please ignore this email or contact our support team.</p>
-                
-                        <p style="margin-top: 30px;">Best regards,<br>The Team</p>
-                
-                        <hr style="margin-top: 40px; border: none; border-top: 1px solid #ddd;">
-                    </div>
-                </body>
-                </html>
-                """;
+                """
+                + verificationCode
+                + """
+                                    </h1>
+                                </div>
+
+                                <p>Enter this code on the verification page to activate your account.</p>
+
+                                <p style="background-color: #fff3cd; padding: 15px; border-left: 4px solid #ff9800; border-radius: 4px; margin: 20px 0;">
+                                    <strong>Important:</strong> This verification code will expire in <strong>15 minutes</strong>.
+                                </p>
+
+                                <p>If you did not request this verification code, please ignore this email or contact our support team.</p>
+
+                                <p style="margin-top: 30px;">Best regards,<br>The Team</p>
+
+                                <hr style="margin-top: 40px; border: none; border-top: 1px solid #ddd;">
+                            </div>
+                        </body>
+                        </html>
+                        """;
     }
 
-
-
     public static BigDecimal convertKoboToNaira(Long amountInKobo) {
-        if (amountInKobo == null) return null;
+        if (amountInKobo == null)
+            return null;
         return BigDecimal.valueOf(amountInKobo).divide(BigDecimal.valueOf(100));
     }
 
     public static Long convertNairaToKobo(BigDecimal amountInNaira) {
-        if (amountInNaira == null) return null;
+        if (amountInNaira == null)
+            return null;
         return amountInNaira.multiply(BigDecimal.valueOf(100)).longValue();
     }
 
-     public static LocalDate calculateNextDate(LocalDate currentDate, GroupSavingsType cycle) {
+    public static LocalDate calculateNextDate(LocalDate currentDate, GroupSavingsType cycle) {
 
         return switch (cycle) {
 
@@ -167,4 +172,6 @@ public class AppExtensions {
                 currentDate.plusMonths(1);
         };
     }
+
+    
 }
