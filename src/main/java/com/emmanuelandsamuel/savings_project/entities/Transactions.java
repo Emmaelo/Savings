@@ -31,7 +31,7 @@ public class Transactions {
     private UUID id;
 
     @Column(nullable = false)
-    private BigDecimal amount;
+    private BigDecimal requestAmount;
 
     @Column(nullable = true)
     private BigDecimal amountPaid;
@@ -40,7 +40,7 @@ public class Transactions {
     private String payStackReference;
 
     @Column(nullable = true)
-    private int payStackTransactionId;
+    private Long payStackTransactionId;
 
     @Column(nullable = false, unique = true)
     private String transactionReference;
@@ -51,7 +51,7 @@ public class Transactions {
     @Column(nullable = true)
     private String authorizationUrl;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private String bank;
 
     @Column(nullable = true)
@@ -61,7 +61,6 @@ public class Transactions {
     private String transactionType;
 
     @Column(nullable = false)
-    // @Enumerated(jakarta.persistence.EnumType.STRING)
     private String status;
 
     @ManyToOne(fetch = FetchType.LAZY)

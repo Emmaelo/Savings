@@ -138,7 +138,7 @@ public class GroupServiceImplementation implements GroupService {
     @Transactional
     @Override
     public String userJoinGroup(String groupNameCode) {
-        String email = "emmanuelezeuchegbu@gmail.com";
+        String email = "emmanuel@gmail.com";
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ApplicationException("User not found with email: " + email));

@@ -9,7 +9,6 @@ import com.emmanuelandsamuel.savings_project.services.interfaces.GroupContributi
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -27,9 +26,9 @@ public class GroupContributionController {
     }
 
     @Operation(summary = "Process next cycle for a group", description = "Processes the next saving cycle for a specific group")
-    @PostMapping("/next-cycle/{groupId}")
-    public String processNextCycle(UUID groupId) {
-        return groupContributionService.processNextCycle(groupId);
+    @PostMapping("/next-cycle/{groupCode}")
+    public String processNextCycle(String groupCode) {
+        return groupContributionService.processNextCycle(groupCode);
     }
 
 }

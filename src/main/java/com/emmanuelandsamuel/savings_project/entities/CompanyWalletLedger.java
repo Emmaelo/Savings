@@ -33,7 +33,4 @@ public class CompanyWalletLedger extends BaseEntity {
     @Column(nullable = false)
     private LedgerEntryType entryType;
 
-    
-
-    // Add any additional fields like description, referenceId, etc. if needed inccase of any error and there should be refund.. 
 }

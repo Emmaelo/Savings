@@ -122,16 +122,16 @@ public class GroupContributionServiceImplementation implements GroupContribution
 
         @Transactional
         @Override
-        public String processNextCycle(UUID groupId) {
+        public String processNextCycle(String  groupCode) {
 
-                Group group = groupRepository.findById(groupId)
+                Group group = groupRepository.findByGroupCode(groupCode)
                                 .orElseThrow(() -> new ApplicationException("Group not found"));
 
                 if (group.getNextContributionDate().isAfter(LocalDate.now())) {
                         return "Payment date has not been reached yet. Contact admin if you think this is an error.";
                 }
 
-                List<GroupContributionRecord> records = groupContributionRepository.findByGroupIdAndCycleNumber(groupId,
+                List<GroupContributionRecord> records = groupContributionRepository.findByGroupIdAndCycleNumber(group.getId(),
                                 group.getCurrentCycle());
 
                 if (!allRequiredMembersPaid(records)) {
@@ -155,6 +155,7 @@ public class GroupContributionServiceImplementation implements GroupContribution
                 }
 
                 payoutMember.setHasReceivedCurrentCycle(true);
+
 
                 int nextIndex = currentIndex + 1;
 
@@ -192,6 +193,7 @@ public class GroupContributionServiceImplementation implements GroupContribution
                                         record.setUserId(member.getUserId());
                                         record.setGroupCode(group.getGroupCode());
                                         record.setAmount(group.getAmountToSave());
+                                        record.setUserEmail(member.getUserEmail());
                                         record.setContributionStatus(GroupContributionRecord.ContributionStatus.DUE);
                                         record.setCycleNumber(group.getCurrentCycle());
                                         record.setNextContributionDate(group.getNextContributionDate());
@@ -210,6 +212,8 @@ public class GroupContributionServiceImplementation implements GroupContribution
                 return records.stream()
                                 .allMatch(r -> r.getContributionStatus() == GroupContributionRecord.ContributionStatus.PAID);
         }
+
+
 
         private boolean payMember(Group group, GroupMember payoutMember) {
 
@@ -247,7 +251,7 @@ public class GroupContributionServiceImplementation implements GroupContribution
                 companyWalletLedgerRepository.save(
                                 CompanyWalletLedger.builder()
                                                 .amount(FEE)
-                                                .source("Group Payout to" + user.getEmail())
+                                                .source("Group Payout to " + user.getEmail())
                                                 .entryType(LedgerEntryType.CREDIT)
                                                 .build());
                 return true;

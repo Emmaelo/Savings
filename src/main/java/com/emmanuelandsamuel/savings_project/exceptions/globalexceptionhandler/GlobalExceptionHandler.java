@@ -17,54 +17,85 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @SuppressWarnings("NullableProblems")
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
-    @Override
-    protected @Nullable ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException ex, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
+    // @Override
+    // protected @Nullable ResponseEntity<Object>
+    // handleMethodArgumentNotValid(MethodArgumentNotValidException ex, HttpHeaders
+    // headers, HttpStatusCode status, WebRequest request) {
 
-        List<String> validationErrorList = ex.getBindingResult()
-                .getAllErrors()
-                .stream()
-                .map(DefaultMessageSourceResolvable::getDefaultMessage)
-                .toList();
+    // List<String> validationErrorList = ex.getBindingResult()
+    // .getAllErrors()
+    // .stream()
+    // .map(DefaultMessageSourceResolvable::getDefaultMessage)
+    // .toList();
 
-        ApiResponse<List<String>> validationErrors = ApiResponse.validationError("Validation failed", validationErrorList);
+    // ApiResponse<List<String>> validationErrors =
+    // ApiResponse.validationError("Validation failed", validationErrorList);
 
-        return new ResponseEntity<>(validationErrors, HttpStatus.BAD_REQUEST);
-    }
+    // return new ResponseEntity<>(validationErrors, HttpStatus.BAD_REQUEST);
+    // }
 
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<String>> handleGenericException(Exception ex) {
+    // @ExceptionHandler(Exception.class)
+    // public ResponseEntity<ApiResponse<String>> handleGenericException(Exception ex) {
 
-        log.error("An unexpected error occurred: {}", ex.getMessage(), ex);
+    //     log.error("An unexpected error occurred: {}", ex.getMessage(), ex);
 
-        ApiResponse<String> apiResponse = ApiResponse.error("An unexpected error occurred on the server, please try again later.");
+    //     ApiResponse<String> apiResponse = ApiResponse
+    //             .error("An unexpected error occurred on the server, please try again later.");
 
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(apiResponse);
-    }
+    //     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(apiResponse);
+    // }
 
     @ExceptionHandler(ApplicationException.class)
-    public ResponseEntity<ApiResponse<String>> handleApplicationException(ApplicationException ex) {
+    public ResponseEntity<ApiResponse<String>> handleApplicationException(final ApplicationException ex) {
 
         log.error("Application error: {}", ex.getMessage(), ex);
+        ApiResponse<String> apiResponse = new ApiResponse<>(false, ex.getMessage(), ex.getMessage());
 
-        ApiResponse<String> apiResponse = ApiResponse.error("An error occurred while processing your request.");
-
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(apiResponse);
+        return new ResponseEntity<>(apiResponse, HttpStatus.BAD_REQUEST);
     }
 
-     @ExceptionHandler(WalletNotFoundException.class)
+    @ExceptionHandler(WalletNotFoundException.class)
     public ResponseEntity<ApiResponse<String>> handleWalletNotFoundException(WalletNotFoundException ex) {
 
         log.error("Wallet not found: {}", ex.getMessage(), ex);
 
         ApiResponse<String> apiResponse = ApiResponse.error("Wallet not found.");
 
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(apiResponse);
+        return new ResponseEntity<>(apiResponse, HttpStatus.NOT_FOUND);
     }
+
+    // @ExceptionHandler(MethodArgumentNotValidException.class)
+    // public ResponseEntity<ApiResponse<Object>> handleValidationExceptions(MethodArgumentNotValidException ex) {
+    //     Map<String, String> errors = new HashMap<>();
+
+    //     ex.getBindingResult().getFieldErrors()
+    //             .forEach(error -> errors.put(error.getField(), error.getDefaultMessage()));
+
+    //     String firstMessage = ex.getBindingResult().getFieldErrors().get(0).getDefaultMessage();
+    //     ApiResponse<Object> response = new ApiResponse<>();
+    //     response.setResponseMessage(firstMessage);
+
+    //     return ResponseEntity.badRequest().body(response);
+    // }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiResponse<String>> handleGeneralException(Exception ex) {
+
+        log.error("Unexpected error", ex);
+
+        ApiResponse<String> response = ApiResponse.error(ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(response);
+    }
+
 }

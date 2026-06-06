@@ -18,8 +18,6 @@ public class FundWalletRequest {
 
     @Positive(message = "Amount must be greater than zero") 
     private BigDecimal amount;
-    private String bank;
-    private String transactionType;
-    private IdempotencyKeyCheckRequest idempotencyKeyCheckRequest;
+    // private IdempotencyKeyCheckRequest idempotencyKeyCheckRequest;
 
 }
