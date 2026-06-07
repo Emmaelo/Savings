@@ -69,9 +69,6 @@ public class GroupServiceImplementation implements GroupService {
             return "Insufficient funds in your wallet to create this group. Please fund your wallet and try again.";
         }
 
-        if (groupRepository.existsByName(groupRequest.getName())) {
-            return groupRequest.getName() + " already exists. Please choose a different name";
-        }
 
         GroupSavingsType groupSavingsType = GroupSavingsType.valueOf(groupRequest.getGroupSavingsType().toUpperCase());
 
@@ -135,17 +132,18 @@ public class GroupServiceImplementation implements GroupService {
         return "Group created successfully";
     }
 
+
     @Transactional
     @Override
-    public String userJoinGroup(String groupNameCode) {
+    public String userJoinGroup(String groupCode) {
         String email = "emmanuel@gmail.com";
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ApplicationException("User not found with email: " + email));
 
-        Optional<Group> groupOptional = groupRepository.findByGroupCodeOrName(groupNameCode, groupNameCode);
+        Optional<Group> groupOptional = groupRepository.findByGroupCode(groupCode);
         if (groupOptional.isEmpty()) {
-            return "Group not found with name or code: " + groupNameCode;
+            return "Group not found with code: " + groupCode;
         }
         Group group = groupOptional.get();
 
@@ -218,7 +216,7 @@ public class GroupServiceImplementation implements GroupService {
 
     @Override
     @Transactional
-    public String userLeaveGroup(String groupNameCode) {
+    public String userLeaveGroup(String groupCode) {
         // String email =
         // SecurityContextHolder.getContext().getAuthentication().getName();
         String email = "emmanuel@gmail.com";
@@ -226,9 +224,9 @@ public class GroupServiceImplementation implements GroupService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ApplicationException("User not found with email: " + email));
 
-        Optional<Group> groupOptional = groupRepository.findByGroupCodeOrName(groupNameCode, groupNameCode);
+        Optional<Group> groupOptional = groupRepository.findByGroupCode(groupCode);
         if (groupOptional.isEmpty()) {
-            return "Group not found with name or code: " + groupNameCode;
+            return "Group not found with code: " + groupCode;
         }
         Group group = groupOptional.get();
 
@@ -276,7 +274,7 @@ public class GroupServiceImplementation implements GroupService {
     }
 
     @Override
-    public String activateGroup(String groupNameCode) {
+    public String activateGroup(String groupCode) {
         // String email =
         // SecurityContextHolder.getContext().getAuthentication().getName();
         String email = "ezeuchegbu@gmail.com";
@@ -284,9 +282,9 @@ public class GroupServiceImplementation implements GroupService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ApplicationException("User not found with email: " + email));
 
-        Optional<Group> groupOptional = groupRepository.findByGroupCodeOrName(groupNameCode, groupNameCode);
+        Optional<Group> groupOptional = groupRepository.findByGroupCode(groupCode);
         if (groupOptional.isEmpty()) {
-            return "Group not found with name or code: " + groupNameCode;
+            return "Group not found with code: " + groupCode;
         }
         Group group = groupOptional.get();
 
@@ -371,14 +369,14 @@ public class GroupServiceImplementation implements GroupService {
 
     @Transactional
     @Override
-    public String deleteGroup(String groupNameCode) {
+    public String deleteGroup(String groupCode) {
         // String email =
         // SecurityContextHolder.getContext().getAuthentication().getName();
         String email = "emmanuelezeuchegbu@gmail.com";
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ApplicationException("User not found with email: " + email));
-        Optional<Group> groupOptional = groupRepository.findByGroupCodeOrName(groupNameCode, groupNameCode);
+        Optional<Group> groupOptional = groupRepository.findByGroupCode(groupCode);
         if (groupOptional.isEmpty()) {
             return "Group not found";
         }

@@ -11,7 +11,5 @@ import java.util.UUID;
 @Repository
 public interface GroupRepository extends JpaRepository<Group, UUID> {
     boolean existsByGroupCode(String groupCode);
-    boolean existsByName(String name);
-    Optional<Group> findByGroupCodeOrName(String groupCode, String name);
     Optional<Group> findByGroupCode(String groupCode);
 }
