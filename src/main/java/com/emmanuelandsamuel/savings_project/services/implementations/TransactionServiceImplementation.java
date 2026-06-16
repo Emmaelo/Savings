@@ -7,6 +7,7 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,6 +42,7 @@ public class TransactionServiceImplementation implements TransactionService {
     private final UserWalletRepository userWalletRepository;
     private final UserWalletLedgerRepository userWalletLedgerRepository;
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
     private final PaystackClient paystackClient;
     private final TransactionRepository transactionRepository;
     private final CompanyWalletLedgerRepository companyWalletLedgerRepository;
@@ -71,6 +73,7 @@ public class TransactionServiceImplementation implements TransactionService {
         Transactions transaction = Transactions.builder()
                 .requestAmount(request.getAmount())
                 .transactionReference(transactionReference)
+                .userEmail(email)
                 .status("PENDING")
                 .user(user)
                 .build();
@@ -117,10 +120,10 @@ public class TransactionServiceImplementation implements TransactionService {
     @Transactional
     public String verifyPaystackTransaction(String paystackReference) {
 
-        Transactions transaction = transactionRepository.findByPayStackReference(paystackReference)
+        Transactions transaction = transactionRepository.findByPayStackReferenceForUpdate(paystackReference)
                 .orElseThrow(() -> new ApplicationException("Transaction not found"));
 
-        if (transaction.getStatus().equalsIgnoreCase("SUCCESS")) {
+        if ("SUCCESS".equals(transaction.getStatus())) {
             return "Transaction has already been verified and wallet credited.";
         }
 
@@ -144,15 +147,20 @@ public class TransactionServiceImplementation implements TransactionService {
         transaction.setPaidAt(response.getData().getPaidAt());
         transactionRepository.save(transaction);
 
-        creditUserWallet(transaction);
+        String creditResponse = creditUserWallet(transaction);
+        if (creditResponse.equals("success")) {
+            return "Payment verified and wallet credited successfully...";
+        }
 
-        return "Payment verified and wallet credited successfully...";
+        return " Failed... Wallet Not Credited!!!";
     }
 
-
-    private void creditUserWallet(Transactions transaction) {
+    private String creditUserWallet(Transactions transaction) {
         User user = transaction.getUser();
-        UserWallet wallet = user.getUserWallet();
+
+        UserWallet wallet = userWalletRepository.findByUserEmailForUpdate(user.getEmail())
+                .orElseThrow(() -> new WalletNotFoundException("User wallet not found"));
+
         BigDecimal amountPaid = transaction.getAmountPaid();
 
         wallet.setAvailableBalance(wallet.getAvailableBalance().add(amountPaid));
@@ -166,6 +174,7 @@ public class TransactionServiceImplementation implements TransactionService {
                         .entryType(LedgerEntryType.CREDIT)
                         .source("PAYSTACK - " + transaction.getPayStackReference())
                         .build());
+        return "success";
     }
 
     @Transactional
@@ -175,12 +184,19 @@ public class TransactionServiceImplementation implements TransactionService {
         // SecurityContextHolder.getContext().getAuthentication().getName();
         String email = "emmanuelezeuchegbu@gmail.com";
 
-        UserWallet userWallet = userWalletRepository.findByUserEmail(email)
+        UserWallet userWallet = userWalletRepository.findByUserEmailForUpdate(email)
                 .orElseThrow(() -> new WalletNotFoundException("User wallet not found"));
 
-        if (!userWallet.getWalletStatus().equals(WalletStatus.ACTIVE)) {
+
+        if (userWallet.getSecretPin() == null
+                || !passwordEncoder.matches(request.getPin(), userWallet.getSecretPin())) {
+            return "Invalid Pin";
+        }
+
+        if (userWallet.getWalletStatus() != WalletStatus.ACTIVE) {
             return "Your wallet is currently not available. Please contact support for assistance.";
         }
+
         BigDecimal totalDebitAmount = request.getAmount().add(WITHDRAWAL_FEE);
 
         if (userWallet.getAvailableBalance().compareTo(totalDebitAmount) < 0) {
@@ -189,7 +205,6 @@ public class TransactionServiceImplementation implements TransactionService {
 
         userWallet.setAvailableBalance(userWallet.getAvailableBalance().subtract(totalDebitAmount));
         userWalletRepository.save(userWallet);
-
 
         userWalletLedgerRepository.save(
                 UserWalletLedger.builder()
@@ -207,18 +222,19 @@ public class TransactionServiceImplementation implements TransactionService {
                         .entryType(LedgerEntryType.CREDIT)
                         .build());
 
-
-                        Transactions transaction = Transactions.builder()
-                        .requestAmount(totalDebitAmount)
-                        .status("PROCESSING")
-                        .amountPaid(request.getAmount())
-                        .transactionReference(generateUniqueTransactionReference())
-                        .transactionType("DEBIT")
-                        .user(userWallet.getUser())
-                        .build();
+        Transactions transaction = Transactions.builder()
+                .requestAmount(totalDebitAmount)
+                .status("PROCESSING")
+                .amountPaid(request.getAmount())
+                .transactionReference(generateUniqueTransactionReference())
+                .userEmail(email)
+                .transactionType("DEBIT")
+                .user(userWallet.getUser())
+                .build();
         transactionRepository.save(transaction);
 
-        // Kafka and actual withdrawal 3rd party logic would go here with an outbox event..
+        // Kafka and actual withdrawal 3rd party logic would go here with an outbox
+        // event..
         return "Withdraw Successful.";
     }
 

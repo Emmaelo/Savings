@@ -10,7 +10,7 @@ import java.util.UUID;
 
 @Repository
 public interface GroupContributionRecordRepository extends JpaRepository<GroupContributionRecord, UUID> {
-    List<GroupContributionRecord> findByGroupIdAndCycleNumber(UUID groupId, int cycleNumber);
-   Optional<GroupContributionRecord> findByGroupIdAndCycleNumberAndUserId(UUID groupId, int cycleNumber, UUID userId);
+    List<GroupContributionRecord> findByGroupIdAndCycleNumberAndCurrentIndex(UUID groupId, int cycleNumber, int currentIndex);
+   Optional<GroupContributionRecord> findByGroupIdAndCycleNumberAndUserEmailAndCurrentIndex(UUID groupId, int cycleNumber, String userEmail, int curentIndex);
 
 }

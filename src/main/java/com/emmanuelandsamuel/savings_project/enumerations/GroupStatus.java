@@ -4,6 +4,7 @@ public enum GroupStatus {
 
     ACTIVE,
     INACTIVE,
+    SUSPENDED,
     CLOSED
 
 }

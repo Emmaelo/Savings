@@ -13,13 +13,10 @@ import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(
-        name = "groups",
-        indexes = {
-                @Index(name = "idx_group_name", columnList = "name"),
-                @Index(name = "idx_group_code", columnList = "groupCode")
-        }
-)
+@Table(name = "groups", indexes = {
+        @Index(name = "idx_group_name", columnList = "name"),
+        @Index(name = "idx_group_code", columnList = "groupCode")
+})
 @Getter
 @Setter
 @AllArgsConstructor
@@ -37,9 +34,6 @@ public class Group extends BaseEntity {
     private String name;
 
     @Column(nullable = false)
-    private UUID creatorId;
-
-    @Column(nullable = false)
     private String creatorEmail;
 
     @Column(nullable = false, precision = 19, scale = 2)
@@ -50,6 +44,9 @@ public class Group extends BaseEntity {
 
     @Column(nullable = false)
     private int memberCount;
+
+    @Column(nullable = false)
+    private int currentMemberCount;
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
@@ -64,6 +61,7 @@ public class Group extends BaseEntity {
 
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default
+    @OrderBy("joinedAt ASC")
     private List<GroupMember> groupMembers = new ArrayList<>();
 
     @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY, optional = false)
@@ -101,11 +99,5 @@ public class Group extends BaseEntity {
         }
     }
 
-    public Group orElseThrow(Object object) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'orElseThrow'");
-    }
 
-
-    
 }

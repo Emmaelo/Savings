@@ -23,9 +23,7 @@ public class GroupMember extends BaseEntity {
     @Column(nullable = false, updatable = false)
     private UUID id;
 
-    @Column(nullable = false)
-    private UUID userId;
-
+ 
     @Column(nullable = false)
     private String groupCode;
 
@@ -41,7 +39,7 @@ public class GroupMember extends BaseEntity {
 
     @Column(nullable = false)
     @Builder.Default
-    private int missedContributions = 0; // Count of missed payments
+    private int missedContributions = 0; // Count of missed payments  have not implemented this anywhere...
 
     @Column(nullable = false)
     @Builder.Default
@@ -49,9 +47,12 @@ public class GroupMember extends BaseEntity {
 
     @Column(nullable = false)
     @Builder.Default
-    private LocalDateTime nextDueDate = LocalDateTime.now(); // When their next contribution is due
+    private boolean paidCurrentCycle = false;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "group_id", nullable = false)
     private Group group;
+
+    @Column(nullable = false)
+    private LocalDateTime joinedAt;
 }

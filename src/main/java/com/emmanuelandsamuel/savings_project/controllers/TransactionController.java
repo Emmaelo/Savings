@@ -32,13 +32,13 @@ public class TransactionController {
 
     @Operation(summary = "Verify Paystack transaction")
     @GetMapping("/verify-transaction/{paystackReference}")
-     public String verifyPaystackTransaction(@PathVariable String paystackReference) {
-        return transactionService.verifyPaystackTransaction(paystackReference);
+     public ResponseEntity<ApiResponse< String>> verifyPaystackTransaction(@PathVariable String paystackReference) {
+        return ResponseEntity.ok().body(new ApiResponse<>(true,  transactionService.verifyPaystackTransaction(paystackReference)));
     }
 
     @Operation(summary = "Withdraw from user wallet")
     @PostMapping("/withdraw")
-     public String withdrawFromUserWallet(@RequestBody WithdrawalRequest request) {
-        return transactionService.withdrawFromUserWallet(request);
+     public ResponseEntity<ApiResponse <String>> withdrawFromUserWallet(@RequestBody WithdrawalRequest request) {
+        return ResponseEntity.ok().body(new ApiResponse<>(true,  transactionService.withdrawFromUserWallet(request)));
     }
 }

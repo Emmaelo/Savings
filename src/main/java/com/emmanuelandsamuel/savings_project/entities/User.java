@@ -58,6 +58,8 @@ public class User extends BaseEntity {
     @JoinColumn(name = "user_wallet_id")
     private UserWallet userWallet;
 
+
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default
     private List<Transactions> transactions = new ArrayList<>();

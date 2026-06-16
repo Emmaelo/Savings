@@ -1,14 +1,18 @@
-// package com.emmanuelandsamuel.savings_project.services.interfaces;
+package com.emmanuelandsamuel.savings_project.services.interfaces;
 
-// import com.emmanuelandsamuel.savings_project.dtos.requests.UserLoginRequest;
-// import com.emmanuelandsamuel.savings_project.dtos.requests.UserRegistrationRequest;
-// import com.emmanuelandsamuel.savings_project.dtos.responses.ApiResponse;
-// import com.emmanuelandsamuel.savings_project.dtos.responses.LoginResponse;
+import java.util.List;
 
-// public interface UserService {
+import org.springframework.data.domain.Page;
 
-//     ApiResponse<String> registerUser(String idempotencyKey, UserRegistrationRequest userRegistrationRequest);
+import com.emmanuelandsamuel.savings_project.dtos.requests.GroupSearchRequest;
+import com.emmanuelandsamuel.savings_project.dtos.responses.BankListResponse;
+import com.emmanuelandsamuel.savings_project.dtos.responses.UserGroupResponse;
+import com.emmanuelandsamuel.savings_project.entities.Group;
 
-//     ApiResponse<LoginResponse> loginUser(String idempotencyKey, UserLoginRequest userLoginRequest);
+public interface UserService {
+    List<BankListResponse> getUsersBanks();
+    List<UserGroupResponse> getUsersGroups();
+    Page<Group> searchJoinableGroups(GroupSearchRequest request);
+    UserGroupResponse findGroupByCode(String groupCode);
 
-// }
+}

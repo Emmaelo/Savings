@@ -48,6 +48,10 @@ public class Transactions {
     @Column(nullable = true)
     private String accessCode;
 
+    @Column(nullable = false)
+    private String userEmail;
+
+
     @Column(nullable = true)
     private String authorizationUrl;
 

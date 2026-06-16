@@ -19,7 +19,7 @@
 
 // @SuppressWarnings("NullableProblems")
 // @RestController
-// @RequestMapping("/api/user")
+// @RequestMapping("/api")
 // @RequiredArgsConstructor
 // @Tag(name = "User Authentication", description = "APIs for user registration, login, and authentication")
 // public class UserController {

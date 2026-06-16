@@ -2,6 +2,8 @@ package com.emmanuelandsamuel.savings_project.dtos.requests;
 
 import java.math.BigDecimal;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -18,5 +20,10 @@ public class WithdrawalRequest {
     @Positive(message = "Amount must be greater than zero")
     private BigDecimal amount;
 
+    private String pin;
+
+    private String accountNumber;
+    
+    private String bankCode;
 
 }

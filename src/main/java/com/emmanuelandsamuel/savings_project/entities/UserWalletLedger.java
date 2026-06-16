@@ -25,6 +25,9 @@ public class UserWalletLedger extends BaseEntity {
 
     @Column(nullable = false)
     private UUID walletId;
+    
+   @Column(nullable = false)
+    private String email;
 
     @Column(nullable = false)
     private BigDecimal amount;

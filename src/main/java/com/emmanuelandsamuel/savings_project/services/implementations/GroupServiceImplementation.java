@@ -2,12 +2,13 @@ package com.emmanuelandsamuel.savings_project.services.implementations;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,22 +16,25 @@ import com.emmanuelandsamuel.savings_project.dtos.requests.GroupRequest;
 import com.emmanuelandsamuel.savings_project.entities.CompanyWalletLedger;
 import com.emmanuelandsamuel.savings_project.entities.Group;
 import com.emmanuelandsamuel.savings_project.entities.GroupContributionRecord;
-import com.emmanuelandsamuel.savings_project.entities.GroupContributionRecord.ContributionStatus;
+
 import com.emmanuelandsamuel.savings_project.entities.GroupMember;
 import com.emmanuelandsamuel.savings_project.entities.GroupWallet;
 import com.emmanuelandsamuel.savings_project.entities.GroupWalletLedger;
-import com.emmanuelandsamuel.savings_project.entities.User;
+
+import com.emmanuelandsamuel.savings_project.entities.UserWallet;
 import com.emmanuelandsamuel.savings_project.entities.UserWalletLedger;
 import com.emmanuelandsamuel.savings_project.enumerations.GroupSavingsType;
 import com.emmanuelandsamuel.savings_project.enumerations.GroupStatus;
 import com.emmanuelandsamuel.savings_project.enumerations.LedgerEntryType;
+import com.emmanuelandsamuel.savings_project.enumerations.WalletStatus;
 import com.emmanuelandsamuel.savings_project.exceptions.ApplicationException;
+import com.emmanuelandsamuel.savings_project.exceptions.WalletNotFoundException;
 import com.emmanuelandsamuel.savings_project.repositories.CompanyWalletLedgerRepository;
 import com.emmanuelandsamuel.savings_project.repositories.GroupContributionRecordRepository;
 import com.emmanuelandsamuel.savings_project.repositories.GroupRepository;
 import com.emmanuelandsamuel.savings_project.repositories.GroupWalletLedgerRepository;
-import com.emmanuelandsamuel.savings_project.repositories.UserRepository;
 import com.emmanuelandsamuel.savings_project.repositories.UserWalletLedgerRepository;
+import com.emmanuelandsamuel.savings_project.repositories.UserWalletRepository;
 import com.emmanuelandsamuel.savings_project.services.interfaces.GroupService;
 import com.emmanuelandsamuel.savings_project.utilities.AppExtensions;
 
@@ -42,15 +46,14 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class GroupServiceImplementation implements GroupService {
     private final GroupRepository groupRepository;
-    private final UserRepository userRepository;
+    private final UserWalletRepository userWalletRepository;
     private final GroupWalletLedgerRepository groupWalletLedgerRepository;
     private final CompanyWalletLedgerRepository companyWalletLedgerRepository;
     private final UserWalletLedgerRepository userWalletLedgerRepository;
     private static final BigDecimal FEE = BigDecimal.valueOf(500);
+    private static final BigDecimal CREATION_FEE = BigDecimal.valueOf(1000);
     private final GroupContributionRecordRepository groupContributionRepository;
-    
 
-    @Override
     @Transactional
     public String createGroup(GroupRequest groupRequest) {
         if (groupRequest.getAmountToSave().compareTo(BigDecimal.valueOf(2000)) < 0) {
@@ -62,24 +65,27 @@ public class GroupServiceImplementation implements GroupService {
         // String email =
         // SecurityContextHolder.getContext().getAuthentication().getName();
         String email = "ezeuchegbu@gmail.com";
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ApplicationException("User not found with email: " + email));
+        UserWallet wallet = userWalletRepository.findByUserEmailForUpdate(email)
+                .orElseThrow(() -> new WalletNotFoundException("User wallet not found"));
 
-        if (user.getUserWallet().getAvailableBalance().compareTo(groupRequest.getAmountToSave().add(FEE)) < 0) {
-            return "Insufficient funds in your wallet to create this group. Please fund your wallet and try again.";
+        if (wallet.getWalletStatus() == WalletStatus.SUSPENDED) {
+            return "User is Suspended. Please Contact Customer Care for resolution";
         }
 
+        if (wallet.getAvailableBalance().compareTo(groupRequest.getAmountToSave().add(CREATION_FEE)) < 0) {
+            return "Insufficient funds in your wallet to create this group. Please fund your wallet and try again.";
+        }
 
         GroupSavingsType groupSavingsType = GroupSavingsType.valueOf(groupRequest.getGroupSavingsType().toUpperCase());
 
         String groupCode = generateUniqueGroupCode(groupSavingsType);
         Group group = Group.builder()
                 .name(groupRequest.getName())
-                .creatorId(user.getId())
                 .creatorEmail(email)
                 .amountToSave(groupRequest.getAmountToSave())
                 .groupSavingsType(groupSavingsType)
                 .memberCount(groupRequest.getMemberCount())
+                .currentMemberCount(1)
                 .groupStatus(GroupStatus.INACTIVE)
                 .guaranteeRequired(groupRequest.getGuaranteeRequired().equalsIgnoreCase("true") ? true : false)
                 .groupCode(groupCode)
@@ -87,16 +93,16 @@ public class GroupServiceImplementation implements GroupService {
 
         group.addMember(
                 GroupMember.builder()
-                        .userId(user.getId())
                         .payoutIndex(1)
                         .guaranteeBalance(BigDecimal.ZERO)
                         .groupCode(groupCode)
-                        .userEmail(user.getEmail())
+                        .userEmail(email)
+                        .joinedAt(LocalDateTime.now())
                         .build());
 
-        user.getUserWallet().setAvailableBalance(
-                user.getUserWallet().getAvailableBalance().subtract(groupRequest.getAmountToSave().add(FEE)));
-        userRepository.save(user);
+        wallet.setAvailableBalance(
+                wallet.getAvailableBalance().subtract(groupRequest.getAmountToSave().add(FEE)));
+        userWalletRepository.save(wallet);
 
         group.assignGroupWallet(GroupWallet.builder().build());
         group.getGroupWallet().setAvailableBalance(
@@ -109,16 +115,18 @@ public class GroupServiceImplementation implements GroupService {
                 .balanceAfter(group.getGroupWallet().getAvailableBalance())
                 .source("Deposit by " + email)
                 .entryType(LedgerEntryType.CREDIT)
-                .userId(user.getId())
+                .userEmail(email)
                 .build();
         groupWalletLedgerRepository.save(ledgerEntry);
 
         userWalletLedgerRepository.save(
                 UserWalletLedger.builder()
-                        .walletId(user.getUserWallet().getId())
+                        .walletId(wallet.getId())
                         .amount(groupRequest.getAmountToSave())
-                        .balanceAfter(user.getUserWallet().getAvailableBalance())
+                        .balanceAfter(wallet.getAvailableBalance())
                         .entryType(LedgerEntryType.DEBIT)
+                        .source("USER_CREATE_GROUP")
+                        .email(email)
                         .fee(FEE)
                         .build());
 
@@ -132,30 +140,32 @@ public class GroupServiceImplementation implements GroupService {
         return "Group created successfully";
     }
 
-
     @Transactional
-    @Override
     public String userJoinGroup(String groupCode) {
         String email = "emmanuel@gmail.com";
 
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ApplicationException("User not found with email: " + email));
+        UserWallet wallet = userWalletRepository.findByUserEmailForUpdate(email)
+                .orElseThrow(() -> new WalletNotFoundException("User wallet not found"));
 
-        Optional<Group> groupOptional = groupRepository.findByGroupCode(groupCode);
+        Optional<Group> groupOptional = groupRepository.findByGroupCodeForUpdate(groupCode);
         if (groupOptional.isEmpty()) {
             return "Group not found with code: " + groupCode;
         }
         Group group = groupOptional.get();
+        if (wallet.getWalletStatus() == WalletStatus.SUSPENDED) {
+            return "User is Suspended. Please Contact Customer Care for resolution";
+        }
 
-        if (user.getUserWallet().getAvailableBalance().compareTo(group.getAmountToSave().add(FEE)) < 0) {
+        // Check for guaranteed amount
+        if (wallet.getAvailableBalance().compareTo(group.getAmountToSave().add(FEE)) < 0) {
             return "Insufficient funds in your wallet to join this group. Please fund your wallet and try again.";
         }
 
-        if (group.getGroupMembers().stream().anyMatch(member -> member.getUserId().equals(user.getId()))) {
+        if (group.getGroupMembers().stream().anyMatch(member -> member.getUserEmail().equals(email))) {
             return "You are already a member of this group.";
         }
 
-        if (group.getGroupStatus() == GroupStatus.ACTIVE || group.getGroupStatus() == GroupStatus.CLOSED) {
+        if (group.getGroupStatus() == GroupStatus.ACTIVE || group.getGroupStatus() == GroupStatus.SUSPENDED) {
             return "You cannot join this group at the moment.";
         }
 
@@ -163,24 +173,26 @@ public class GroupServiceImplementation implements GroupService {
             return "Group is filled. You cannot join this group.";
         }
 
-        user.getUserWallet().setAvailableBalance(
-                user.getUserWallet().getAvailableBalance().subtract(group.getAmountToSave().add(FEE)));
+        wallet.setAvailableBalance(
+                wallet.getAvailableBalance().subtract(group.getAmountToSave().add(FEE)));
 
-        userRepository.save(user);
+        userWalletRepository.save(wallet);
 
         List<GroupMember> members = group.getGroupMembers();
         int nextPayoutIndex = members.stream().mapToInt(GroupMember::getPayoutIndex).max().orElse(0) + 1;
 
         group.addMember(
                 GroupMember.builder()
-                        .userId(user.getId())
+
                         .payoutIndex(nextPayoutIndex)
                         .guaranteeBalance(BigDecimal.ZERO)
                         .groupCode(group.getGroupCode())
-                        .userEmail(user.getEmail())
+                        .userEmail(email)
+                        .joinedAt(LocalDateTime.now())
                         .build());
         group.getGroupWallet().setAvailableBalance(
                 group.getGroupWallet().getAvailableBalance().add(group.getAmountToSave()));
+        group.setCurrentMemberCount(group.getCurrentMemberCount() + 1);
 
         groupRepository.save(group);
 
@@ -189,7 +201,7 @@ public class GroupServiceImplementation implements GroupService {
                 .amount(group.getAmountToSave())
                 .balanceAfter(group.getGroupWallet().getAvailableBalance())
                 .entryType(LedgerEntryType.CREDIT)
-                .userId(user.getId())
+                .userEmail(email)
                 .source("Deposit by " + email)
                 .build();
 
@@ -197,10 +209,12 @@ public class GroupServiceImplementation implements GroupService {
 
         userWalletLedgerRepository.save(
                 UserWalletLedger.builder()
-                        .walletId(user.getUserWallet().getId())
+                        .walletId(wallet.getId())
                         .amount(group.getAmountToSave())
-                        .balanceAfter(user.getUserWallet().getAvailableBalance())
+                        .balanceAfter(wallet.getAvailableBalance())
                         .entryType(LedgerEntryType.DEBIT)
+                        .source("USER_JOINED_GROUP")
+                        .email(email)
                         .fee(FEE)
                         .build());
 
@@ -214,50 +228,60 @@ public class GroupServiceImplementation implements GroupService {
         return "Joined Group successfully";
     }
 
-    @Override
     @Transactional
     public String userLeaveGroup(String groupCode) {
         // String email =
         // SecurityContextHolder.getContext().getAuthentication().getName();
-        String email = "emmanuel@gmail.com";
+        String email = "emmanuelezeuchegbu@gmail.com";
 
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ApplicationException("User not found with email: " + email));
+        UserWallet wallet = userWalletRepository.findByUserEmailForUpdate(email)
+                .orElseThrow(() -> new WalletNotFoundException("User wallet not found"));
 
-        Optional<Group> groupOptional = groupRepository.findByGroupCode(groupCode);
+        Optional<Group> groupOptional = groupRepository.findByGroupCodeForUpdate(groupCode);
         if (groupOptional.isEmpty()) {
             return "Group not found with code: " + groupCode;
         }
         Group group = groupOptional.get();
 
-        if (group.getGroupStatus() == GroupStatus.ACTIVE || group.getGroupStatus() == GroupStatus.CLOSED) {
-            return "You cannot leave this group at the moment.";
+        if (group.getGroupStatus() == GroupStatus.ACTIVE || group.getGroupStatus() == GroupStatus.SUSPENDED) {
+            return "You cannot leave this group at the moment. Group is either Active or Suspended";
         }
-        if (group.getCreatorId().equals(user.getId())) {
+        if (group.getCreatorEmail().equals(email)) {
             return "As the creator of the group, you cannot leave the group. You can only delete the group.";
         }
 
         GroupMember member = group.getGroupMembers().stream()
-                .filter(m -> m.getUserId().equals(user.getId()))
+                .filter(m -> m.getUserEmail().equals(email))
                 .findFirst()
                 .orElseThrow(() -> new ApplicationException("You are not a member of this group."));
 
         if (member.getGuaranteeBalance().compareTo(BigDecimal.ZERO) > 0) {
-            user.getUserWallet().setAvailableBalance(
-                    user.getUserWallet().getAvailableBalance().add(member.getGuaranteeBalance()));
+            wallet.setAvailableBalance(
+                    wallet.getAvailableBalance().add(member.getGuaranteeBalance()));
         }
 
         if (group.getGroupWallet().getAvailableBalance().compareTo(group.getAmountToSave()) >= 0) {
             group.getGroupWallet().setAvailableBalance(
                     group.getGroupWallet().getAvailableBalance().subtract(group.getAmountToSave()));
-            user.getUserWallet().setAvailableBalance(
-                    user.getUserWallet().getAvailableBalance().add(group.getAmountToSave()));
+            wallet.setAvailableBalance(
+                    wallet.getAvailableBalance().add(group.getAmountToSave()));
         }
         group.removeMember(member);
+        group.setCurrentMemberCount(group.getCurrentMemberCount() - 1);
+
+        List<GroupMember> members = group.getGroupMembers()
+                .stream()
+                .sorted(Comparator.comparing(GroupMember::getJoinedAt))
+                .toList();
+
+        int i = 1;
+        for (GroupMember m : members) {
+            m.setPayoutIndex(i++);
+        }
 
         groupRepository.save(group);
 
-        userRepository.save(user);
+        userWalletRepository.save(wallet);
 
         GroupWalletLedger ledgerEntry = GroupWalletLedger.builder()
                 .walletId(group.getGroupWallet().getId())
@@ -265,38 +289,58 @@ public class GroupServiceImplementation implements GroupService {
                 .balanceAfter(group.getGroupWallet().getAvailableBalance())
                 .entryType(LedgerEntryType.DEBIT)
                 .source("Left group by " + email)
-                .userId(user.getId())
+                .userEmail(email)
                 .build();
 
         groupWalletLedgerRepository.save(ledgerEntry);
 
+        userWalletLedgerRepository.save(
+                UserWalletLedger.builder()
+                        .walletId(wallet.getId())
+                        .amount(group.getAmountToSave().add(member.getGuaranteeBalance()))
+                        .balanceAfter(wallet.getAvailableBalance())
+                        .entryType(LedgerEntryType.CREDIT)
+                        .source("USER_LEFT_GROUP")
+                        .email(email)
+                        .fee(BigDecimal.ZERO)
+                        .build());
+
         return "Left Group successfully";
     }
 
-    @Override
+    @Transactional
     public String activateGroup(String groupCode) {
         // String email =
         // SecurityContextHolder.getContext().getAuthentication().getName();
         String email = "ezeuchegbu@gmail.com";
 
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ApplicationException("User not found with email: " + email));
-
-        Optional<Group> groupOptional = groupRepository.findByGroupCode(groupCode);
+        Optional<Group> groupOptional = groupRepository.findByGroupCodeForUpdate(groupCode);
         if (groupOptional.isEmpty()) {
             return "Group not found with code: " + groupCode;
         }
         Group group = groupOptional.get();
 
-        if (!group.getCreatorId().equals(user.getId())) {
+        if (!group.getCreatorEmail().equals(email)) {
             return "Only the group creator can activate the group.";
         }
         if (group.getGroupStatus() == GroupStatus.ACTIVE) {
             return "Group is already active.";
         }
-        if (group.getGroupStatus() == GroupStatus.CLOSED) {
-            return "Group is closed and cannot be activated. Contact Support for more information.";
+        if (group.getGroupStatus() == GroupStatus.SUSPENDED) {
+            return "Group is suspended and cannot be activated. Contact Support for more information.";
         }
+
+
+        if (group.getGroupStatus() == GroupStatus.CLOSED) {
+            if (group.getGroupWallet().getAvailableBalance()
+                    .compareTo(group.getAmountToSave()
+                            .multiply(BigDecimal.valueOf(group.getGroupMembers().size()))) == 0) {
+                return "Some members have not made their deposit..";
+            }
+        }
+
+
+
 
         if (group.getGroupMembers().size() < 3) {
             return "At least 3 members are required to activate the group.";
@@ -317,7 +361,7 @@ public class GroupServiceImplementation implements GroupService {
 
         group.setGroupStatus(GroupStatus.ACTIVE);
         group.setNextContributionDate(AppExtensions.calculateNextDate(LocalDate.now(), group.getGroupSavingsType()));
-        
+
         GroupMember payoutMember = group.getGroupMembers().stream()
                 .filter(m -> m.getPayoutIndex() == 1)
                 .findFirst()
@@ -336,97 +380,90 @@ public class GroupServiceImplementation implements GroupService {
 
         groupRepository.save(group);
 
-
         int nextPayoutIndex = group.getCurrentPayoutIndex();
 
-
         List<GroupContributionRecord> contributionRecords = group.getGroupMembers().stream()
-        .filter(m -> m.getPayoutIndex() != nextPayoutIndex)
-        .map(member -> {
-            GroupContributionRecord record = new GroupContributionRecord();
+                .filter(m -> m.getPayoutIndex() != nextPayoutIndex)
+                .map(member -> {
+                    GroupContributionRecord record = new GroupContributionRecord();
 
-            record.setGroupId(group.getId());
-            record.setGroupCode(group.getGroupCode());
-            record.setCycleNumber(group.getCurrentCycle()); 
-            record.setUserId(member.getUserId());
-            record.setUserEmail(member.getUserEmail());
-            record.setAmount(group.getAmountToSave());
-            record.setNextContributionDate(group.getNextContributionDate());
-            record.setContributionStatus(GroupContributionRecord.ContributionStatus.DUE);
+                    record.setGroupId(group.getId());
+                    record.setCurrentIndex(nextPayoutIndex);
+                    record.setGroupCode(group.getGroupCode());
+                    record.setCycleNumber(group.getCurrentCycle());
+                    record.setUserEmail(member.getUserEmail());
+                    record.setAmount(group.getAmountToSave());
+                    record.setNextContributionDate(group.getNextContributionDate());
+                    record.setContributionStatus(GroupContributionRecord.ContributionStatus.DUE);
 
-            return record;
-        })
-        .toList();
+                    return record;
+                })
+                .toList();
 
-       groupContributionRepository.saveAll(contributionRecords);
-
-
+        groupContributionRepository.saveAll(contributionRecords);
 
         return "Group Activated.";
     }
 
-
-
     @Transactional
-    @Override
     public String deleteGroup(String groupCode) {
         // String email =
         // SecurityContextHolder.getContext().getAuthentication().getName();
-        String email = "emmanuelezeuchegbu@gmail.com";
+        String email = "ezeuchegbu@gmail.com";
 
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ApplicationException("User not found with email: " + email));
-        Optional<Group> groupOptional = groupRepository.findByGroupCode(groupCode);
+        Optional<Group> groupOptional = groupRepository.findByGroupCodeForUpdate(groupCode);
+
         if (groupOptional.isEmpty()) {
             return "Group not found";
         }
         Group group = groupOptional.get();
-        if (!group.getCreatorId().equals(user.getId())) {
+        if (!group.getCreatorEmail().equals(email)) {
             return "Only the group creator can delete the group.";
         }
         if (group.getGroupStatus() == GroupStatus.ACTIVE) {
             return "Active groups cannot be deleted.";
         }
         if (group.getGroupStatus() == GroupStatus.CLOSED) {
-            return "Group is Closed, Please contact support for more information.";
+            return "Group is Suspended, Please contact support for more information.";
         }
 
         List<GroupMember> members = new ArrayList<>(group.getGroupMembers());
         if (members != null && !members.isEmpty()) {
             for (GroupMember member : members) {
-                User memberUser = userRepository.findById(member.getUserId())
-                        .orElseThrow(() -> new ApplicationException("User not found with ID: " + member.getUserId()));
+
+                UserWallet wallet = userWalletRepository.findByUserEmailForUpdate(member.getUserEmail())
+                        .orElseThrow(() -> new WalletNotFoundException("User wallet not found"));
 
                 UserWalletLedger userWalletLedger = new UserWalletLedger();
+                userWalletLedger.setWalletId(wallet.getId());
+                userWalletLedger.setEntryType(LedgerEntryType.CREDIT);
+                userWalletLedger.setSource("GROUP_DELETED");
+                userWalletLedger.setEmail(member.getUserEmail());
+                userWalletLedger.setFee(BigDecimal.ZERO);
+
+                BigDecimal totalAmount = BigDecimal.ZERO;
 
                 if (member.getGuaranteeBalance().compareTo(BigDecimal.ZERO) > 0) {
-                    memberUser.getUserWallet().setAvailableBalance(
-                            memberUser.getUserWallet().getAvailableBalance().add(member.getGuaranteeBalance()));
-
-                    userWalletLedger.setWalletId(memberUser.getUserWallet().getId());
-                    userWalletLedger.setAmount(member.getGuaranteeBalance());
-                    userWalletLedger.setEntryType(LedgerEntryType.CREDIT);
-                    userWalletLedger.setBalanceAfter(
-                            memberUser.getUserWallet().getAvailableBalance().add(member.getGuaranteeBalance()));
-
-                    userWalletLedgerRepository.save(userWalletLedger);
+                    totalAmount = totalAmount.add(member.getGuaranteeBalance());
+                    wallet.setAvailableBalance(
+                            wallet.getAvailableBalance().add(member.getGuaranteeBalance()));
                 }
 
                 if (group.getGroupWallet().getAvailableBalance().compareTo(group.getAmountToSave()) >= 0) {
+
+                    totalAmount = totalAmount.add(group.getAmountToSave());
+
                     group.getGroupWallet().setAvailableBalance(
                             group.getGroupWallet().getAvailableBalance().subtract(group.getAmountToSave()));
-                    memberUser.getUserWallet().setAvailableBalance(
-                            memberUser.getUserWallet().getAvailableBalance().add(group.getAmountToSave()));
 
-                    userWalletLedger.setWalletId(memberUser.getUserWallet().getId());
-                    userWalletLedger.setAmount(group.getAmountToSave());
-                    userWalletLedger.setEntryType(LedgerEntryType.CREDIT);
-                    userWalletLedger.setBalanceAfter(
-                            memberUser.getUserWallet().getAvailableBalance().add(group.getAmountToSave()));
-
-                    userWalletLedgerRepository.save(userWalletLedger);
+                    wallet.setAvailableBalance(
+                            wallet.getAvailableBalance().add(group.getAmountToSave()));
                 }
-                userRepository.save(memberUser);
+
+                userWalletLedger.setAmount(totalAmount);
+                userWalletLedger.setBalanceAfter(wallet.getAvailableBalance());
+                userWalletLedgerRepository.save(userWalletLedger);
+                userWalletRepository.save(wallet);
             }
         }
 
@@ -477,21 +514,22 @@ public class GroupServiceImplementation implements GroupService {
 
         group.getGroupWallet().setAvailableBalance(BigDecimal.ZERO);
 
-        User user = userRepository.findById(payoutMember.getUserId())
-                .orElseThrow(() -> new ApplicationException("User not found"));
+        UserWallet wallet = userWalletRepository.findByUserEmailForUpdate(payoutMember.getUserEmail())
+                .orElseThrow(() -> new WalletNotFoundException("User wallet not found"));
 
-        user.getUserWallet().setAvailableBalance(user.getUserWallet().getAvailableBalance().add(payoutAmount));
+        wallet.setAvailableBalance(wallet.getAvailableBalance().add(payoutAmount));
 
-        userRepository.save(user);
+        userWalletRepository.save(wallet);
 
         userWalletLedgerRepository.save(
                 UserWalletLedger.builder()
-                        .walletId(user.getUserWallet().getId())
+                        .walletId(wallet.getId())
                         .amount(payoutAmount)
-                        .balanceAfter(user.getUserWallet().getAvailableBalance())
+                        .balanceAfter(wallet.getAvailableBalance())
                         .entryType(LedgerEntryType.CREDIT)
                         .fee(FEE)
-                        .source("GROUP PAYOUT")
+                        .email(payoutMember.getUserEmail())
+                        .source("GROUP_PAYOUT")
                         .build());
 
         groupWalletLedgerRepository.save(
@@ -500,17 +538,16 @@ public class GroupServiceImplementation implements GroupService {
                         .amount(payoutAmount)
                         .balanceAfter(group.getGroupWallet().getAvailableBalance())
                         .entryType(LedgerEntryType.DEBIT)
-                        .source("Group Payout to " + user.getEmail())
-                        .userId(payoutMember.getUserId())
+                        .source("Group Payout to " + payoutMember.getUserEmail())
+                        .userEmail(payoutMember.getUserEmail())
                         .build());
 
         companyWalletLedgerRepository.save(
                 CompanyWalletLedger.builder()
                         .amount(FEE)
-                        .source("Group Payout to" + user.getEmail())
+                        .source("Group Payout to" + payoutMember.getUserEmail())
                         .entryType(LedgerEntryType.CREDIT)
                         .build());
         return true;
     }
-
 }

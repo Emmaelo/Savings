@@ -34,6 +34,8 @@ public class UserWallet extends BaseEntity {
     @Builder.Default
     private Long version = 0L;
 
+    private String secretPin;
+
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     @Builder.Default

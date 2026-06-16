@@ -34,7 +34,7 @@ public class GroupWalletLedger extends BaseEntity {
     private BigDecimal balanceAfter;
 
     @Column(nullable = false)
-    private UUID userId;
+    private String userEmail;
 
     @Column(nullable = false)
     private String source;

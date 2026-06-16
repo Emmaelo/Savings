@@ -29,8 +29,6 @@ public class GroupContributionRecord extends BaseEntity {
     @Column(nullable = false)
     private int cycleNumber;
 
-    private UUID userId;
-
     private String groupCode;
 
     private String userEmail;
@@ -43,6 +41,8 @@ public class GroupContributionRecord extends BaseEntity {
     private BigDecimal amount;
 
     private LocalDate paymentMadeOn;
+
+    private int currentIndex;
 
     public enum ContributionStatus {
         DUE,
