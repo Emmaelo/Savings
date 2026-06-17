@@ -1,6 +1,6 @@
 // package com.emmanuelandsamuel.savings_project.services.implementations;
 
-// import com.emmanuelandsamuel.savings_project.entities.User;
+// import com.emmanuelandsamuel.savings_project.entities.UserEntity;
 // import com.emmanuelandsamuel.savings_project.exceptions.ApplicationException;
 // import com.emmanuelandsamuel.savings_project.services.interfaces.JwtService;
 // import lombok.RequiredArgsConstructor;
@@ -38,7 +38,7 @@
 
 //         Instant now = Instant.now();
 
-//         User user = (User) authentication.getPrincipal();
+//         UserEntity user = (UserEntity) authentication.getPrincipal();
 
 //         if (user == null) {
 

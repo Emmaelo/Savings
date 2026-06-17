@@ -1,7 +1,7 @@
 package com.emmanuelandsamuel.savings_project.services.implementations;
 
 import com.emmanuelandsamuel.savings_project.dtos.requests.BankAccountRequest;
-import com.emmanuelandsamuel.savings_project.entities.User;
+import com.emmanuelandsamuel.savings_project.entities.UserEntity;
 import com.emmanuelandsamuel.savings_project.entities.UserBankAccount;
 import com.emmanuelandsamuel.savings_project.entities.UserWallet; 
 import com.emmanuelandsamuel.savings_project.repositories.UserBankAccountRepositories;
@@ -35,8 +35,8 @@ public class UserWalletServiceImplementation implements UserWalletService {
 
         try {
 
-            User user = userRepository
-                    .findByEmail(email)
+            UserEntity user = userRepository
+                    .findByEmailIgnoreCase(email)
                     .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
 
             UserWallet userWallet = UserWallet.builder().userEmail(email).build();

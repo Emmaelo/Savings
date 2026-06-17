@@ -19,7 +19,7 @@ import com.emmanuelandsamuel.savings_project.dtos.responses.PaystackInitializeRe
 import com.emmanuelandsamuel.savings_project.dtos.responses.PaystackVerifyResponse;
 import com.emmanuelandsamuel.savings_project.entities.CompanyWalletLedger;
 import com.emmanuelandsamuel.savings_project.entities.Transactions;
-import com.emmanuelandsamuel.savings_project.entities.User;
+import com.emmanuelandsamuel.savings_project.entities.UserEntity;
 import com.emmanuelandsamuel.savings_project.entities.UserWallet;
 import com.emmanuelandsamuel.savings_project.entities.UserWalletLedger;
 import com.emmanuelandsamuel.savings_project.enumerations.LedgerEntryType;
@@ -62,7 +62,7 @@ public class TransactionServiceImplementation implements TransactionService {
         // SecurityContextHolder.getContext().getAuthentication().getName();
         String email = "emmanuelezeuchegbu@gmail.com";
 
-        User user = userRepository.findByEmail(email)
+        UserEntity user = userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new ApplicationException("User not found"));
 
         String transactionReference = generateUniqueTransactionReference();
@@ -156,7 +156,7 @@ public class TransactionServiceImplementation implements TransactionService {
     }
 
     private String creditUserWallet(Transactions transaction) {
-        User user = transaction.getUser();
+        UserEntity user = transaction.getUser();
 
         UserWallet wallet = userWalletRepository.findByUserEmailForUpdate(user.getEmail())
                 .orElseThrow(() -> new WalletNotFoundException("User wallet not found"));

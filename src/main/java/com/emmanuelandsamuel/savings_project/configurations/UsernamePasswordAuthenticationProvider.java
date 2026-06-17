@@ -1,6 +1,6 @@
 package com.emmanuelandsamuel.savings_project.configurations;
 
-import com.emmanuelandsamuel.savings_project.entities.User;
+import com.emmanuelandsamuel.savings_project.entities.UserEntity;
 import com.emmanuelandsamuel.savings_project.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
@@ -33,12 +33,12 @@ public class UsernamePasswordAuthenticationProvider implements AuthenticationPro
 
         String password = Objects.requireNonNull(authentication.getCredentials()).toString();
 
-        Optional<User> userOptional = userRepository.findByEmail(email);
+        Optional<UserEntity> userOptional = userRepository.findByEmailIgnoreCase(email);
 
         if (userOptional.isEmpty())
             return null;
 
-        User user = userOptional.get();
+        UserEntity user = userOptional.get();
 
         if (!passwordEncoder.matches(password, user.getPassword()))
             return null;

@@ -45,5 +45,5 @@ public class UserWallet extends BaseEntity {
     private String userEmail;
 
     @OneToOne(mappedBy = "userWallet")
-    private User user;
+    private UserEntity user;
 }
