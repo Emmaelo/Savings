@@ -118,6 +118,8 @@ public class UserServiceImplementation implements UserService {
 
 
 
+
+        // This is not working yet
         public Page<Group> searchJoinableGroups(
                         GroupSearchRequest request) {
 

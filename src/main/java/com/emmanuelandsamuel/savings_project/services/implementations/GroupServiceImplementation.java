@@ -549,6 +549,7 @@ public class GroupServiceImplementation implements GroupService {
 
 
 
+    @Transactional
     public String addMemberToGroup(AddMemberRequest request) {
 
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -556,7 +557,7 @@ public class GroupServiceImplementation implements GroupService {
         Group group = groupRepository.findByGroupCodeForUpdate(request.getGroupCode())
                 .orElseThrow(() -> new ApplicationException("Group not found"));
 
-        GroupMember groupMember = group.getGroupMembers().stream()
+        group.getGroupMembers().stream()
                 .filter(m -> m.getUserEmail().equals(email))
                 .findFirst()
                 .orElseThrow(() -> new ApplicationException("You cannot add user to a group you belonged not to !!"));
@@ -634,7 +635,7 @@ public class GroupServiceImplementation implements GroupService {
                         .entryType(LedgerEntryType.CREDIT)
                         .build());
 
-        return "Joined Group successfully";
+        return "User added successfully";
 
     }
 

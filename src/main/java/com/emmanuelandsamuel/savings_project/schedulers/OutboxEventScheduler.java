@@ -3,6 +3,7 @@ package com.emmanuelandsamuel.savings_project.schedulers;
 import com.emmanuelandsamuel.savings_project.entities.OutboxEvent;
 import com.emmanuelandsamuel.savings_project.enumerations.OutboxEventStatus;
 import com.emmanuelandsamuel.savings_project.producers.interfaces.KafkaProducerService;
+import com.emmanuelandsamuel.savings_project.producers.interfaces.RabbitProducerService;
 import com.emmanuelandsamuel.savings_project.repositories.OutboxEventRepository;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -49,6 +50,8 @@ public class OutboxEventScheduler {
 
     private Counter skippedDuplicateCounter;
 
+    private final RabbitProducerService rabbitProducerService;
+
     @PostConstruct
     void initMetrics() {
 
@@ -71,7 +74,8 @@ public class OutboxEventScheduler {
 
             log.debug("Processing {} PENDING outbox events", events.size());
 
-            events.forEach(this::publishEvent);
+            // events.forEach(this::publishEvent);
+            events.forEach(this::publishRabbitEvent);
         }
     }
 
@@ -112,6 +116,46 @@ public class OutboxEventScheduler {
             log.info("Cleaned up {} PROCESSED outbox events older than {} hours", deleted, cleanupRetentionHours);
         }
     }
+
+
+    private void publishRabbitEvent(OutboxEvent event){
+        try{
+
+             Object payload = deserialize(event.getPayload(), Object.class);
+
+            boolean success = rabbitProducerService.sendJsonMessage(payload);
+           if (success) {
+
+                event.markProcessed();
+
+                outboxEventRepository.save(event);
+
+                publishedCounter.increment();
+
+                log.info(
+                        "Outbox event published [id={}, type={}, attempt={}]",
+                        event.getId(),
+                        event.getEventType(),
+                        event.getRetryCount()
+                );
+
+            } else {
+
+                handleFailure(event, "Broker may be unavailable");
+
+            }
+             log.info("rabbit sent successfully");
+        }catch (Exception e) {
+
+            handleFailure(event, "Interrupted: " + e.getMessage());
+            log.error("Failed to process outbox event", e);
+        }
+       
+
+
+    }
+
+
 
     private void publishEvent(OutboxEvent event) {
 

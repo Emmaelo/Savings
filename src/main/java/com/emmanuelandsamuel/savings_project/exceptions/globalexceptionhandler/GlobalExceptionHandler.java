@@ -3,28 +3,19 @@ package com.emmanuelandsamuel.savings_project.exceptions.globalexceptionhandler;
 import com.emmanuelandsamuel.savings_project.dtos.responses.ApiResponse;
 import com.emmanuelandsamuel.savings_project.exceptions.ApplicationException;
 import com.emmanuelandsamuel.savings_project.exceptions.WalletNotFoundException;
-
 import lombok.extern.slf4j.Slf4j;
-import org.jspecify.annotations.Nullable;
-import org.springframework.context.support.DefaultMessageSourceResolvable;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.context.request.WebRequest;
-import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.stream.Collectors;
 
 @SuppressWarnings("NullableProblems")
 @RestControllerAdvice
 @Slf4j
-public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
+public class GlobalExceptionHandler {
 
     // @Override
     // protected @Nullable ResponseEntity<Object>
@@ -36,23 +27,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     // .stream()
     // .map(DefaultMessageSourceResolvable::getDefaultMessage)
     // .toList();
-
-    // ApiResponse<List<String>> validationErrors =
-    // ApiResponse.validationError("Validation failed", validationErrorList);
-
-    // return new ResponseEntity<>(validationErrors, HttpStatus.BAD_REQUEST);
-    // }
-
-    // @ExceptionHandler(Exception.class)
-    // public ResponseEntity<ApiResponse<String>> handleGenericException(Exception ex) {
-
-    //     log.error("An unexpected error occurred: {}", ex.getMessage(), ex);
-
-    //     ApiResponse<String> apiResponse = ApiResponse
-    //             .error("An unexpected error occurred on the server, please try again later.");
-
-    //     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(apiResponse);
-    // }
 
     @ExceptionHandler(ApplicationException.class)
     public ResponseEntity<ApiResponse<String>> handleApplicationException(final ApplicationException ex) {
@@ -73,20 +47,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return new ResponseEntity<>(apiResponse, HttpStatus.NOT_FOUND);
     }
 
-    // @ExceptionHandler(MethodArgumentNotValidException.class)
-    // public ResponseEntity<ApiResponse<Object>> handleValidationExceptions(MethodArgumentNotValidException ex) {
-    //     Map<String, String> errors = new HashMap<>();
-
-    //     ex.getBindingResult().getFieldErrors()
-    //             .forEach(error -> errors.put(error.getField(), error.getDefaultMessage()));
-
-    //     String firstMessage = ex.getBindingResult().getFieldErrors().get(0).getDefaultMessage();
-    //     ApiResponse<Object> response = new ApiResponse<>();
-    //     response.setResponseMessage(firstMessage);
-
-    //     return ResponseEntity.badRequest().body(response);
-    // }
-
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<String>> handleGeneralException(Exception ex) {
 
@@ -96,6 +56,23 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(response);
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ApiResponse<String>> handleValidationException(
+            MethodArgumentNotValidException ex) {
+
+        String errorMessage = ex.getBindingResult()
+                .getFieldErrors()
+                .stream()
+                .map(error -> error.getDefaultMessage())
+                .collect(Collectors.joining(", "));
+
+        log.error("Validation error: {}", errorMessage, ex);
+
+        ApiResponse<String> apiResponse = ApiResponse.error(errorMessage);
+
+        return new ResponseEntity<>(apiResponse, HttpStatus.BAD_REQUEST);
     }
 
 }

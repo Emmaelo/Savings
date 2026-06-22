@@ -99,6 +99,8 @@ public class UserWalletServiceImplementation implements UserWalletService {
 
     }
 
+
+    // OTP would be sent to users Email before adding pin to ensure maximum security..
     @Override
     public String addSecretPin(String pin) {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -114,5 +116,7 @@ public class UserWalletServiceImplementation implements UserWalletService {
         return "success";
 
     }
+
+
 
 }

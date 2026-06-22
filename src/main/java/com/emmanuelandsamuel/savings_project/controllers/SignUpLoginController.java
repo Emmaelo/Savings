@@ -99,7 +99,7 @@ public class SignupLoginController {
 
     @PostMapping("/register")
     @Operation(summary = "Register your account 2", description = "Register a User. ")
-    public ResponseEntity<ApiResponse<String>> registerUser2(@RequestBody UserRegistrationRequest request) {
+    public ResponseEntity<ApiResponse<String>> registerUser2(@Valid @RequestBody UserRegistrationRequest request) {
         return ResponseEntity.ok().body(signupLoginService.registerUser2(request));
 
     }

@@ -47,6 +47,7 @@ public class UserServiceController {
          return ResponseEntity.ok().body(new ApiResponse<>(true, userWalletService.addSecretPin(pin)));
     }
 
+    // This is not working yet
      @Operation(summary = "Search for groups to join")
     @PostMapping("/search")
     public ResponseEntity<ApiResponse<PageResponse<Object>>> searchJoinableGroups( @RequestBody GroupSearchRequest request){

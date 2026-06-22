@@ -1,5 +1,6 @@
 package com.emmanuelandsamuel.savings_project.services.interfaces;
 
+import com.emmanuelandsamuel.savings_project.dtos.requests.AddMemberRequest;
 import com.emmanuelandsamuel.savings_project.dtos.requests.GroupRequest;
 
 public interface GroupService {
@@ -8,5 +9,6 @@ public interface GroupService {
     String userLeaveGroup(String groupNameCode);
     String activateGroup(String groupNameCode);
     String deleteGroup(String groupNameCode);
+    String addMemberToGroup(AddMemberRequest request);
 
 }

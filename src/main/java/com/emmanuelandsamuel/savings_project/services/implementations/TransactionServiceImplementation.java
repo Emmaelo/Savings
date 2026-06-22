@@ -217,6 +217,12 @@ public class TransactionServiceImplementation implements TransactionService {
         if (userWallet.getAvailableBalance().compareTo(totalDebitAmount) < 0) {
             return "Insufficient funds...";
         }
+        
+        if (!userBankAccountRepositories.existsByUserEmailAndAccountNumberAndRecipientCode(email,
+                request.getAccountNumber(), request.getRecipientCode())) {
+            return " Incorrect Recipient code";
+        }
+
 
         userWallet.setAvailableBalance(userWallet.getAvailableBalance().subtract(totalDebitAmount));
         userWalletRepository.save(userWallet);
@@ -254,11 +260,6 @@ public class TransactionServiceImplementation implements TransactionService {
                 .build();
         transactionRepository.save(transaction);
 
-        if (!userBankAccountRepositories.existsByUserEmailAndAccountNumberAndRecipientCode(email,
-                request.getAccountNumber(), request.getRecipientCode())) {
-            return " Incorrect code";
-        }
-
         PaystackWithdrawalRequest paystackrequest = PaystackWithdrawalRequest.builder()
                 .amount(request.getAmount().multiply(BigDecimal.valueOf(100)).longValue())
                 .source("balance")
@@ -270,7 +271,10 @@ public class TransactionServiceImplementation implements TransactionService {
         String payload;
         try {
             payload = objectMapper.writeValueAsString(paystackrequest);
+            log.info("Payload sent to Kafka: {}", payload);
+
             OutboxEvent outboxEvent = OutboxEvent.builder()
+
                     .eventType("WITHDRAWAL")
                     .kafkaTopic("withdrawals")
                     .payload(payload)
@@ -298,11 +302,21 @@ public class TransactionServiceImplementation implements TransactionService {
         return paystackClient.withdrawFromPaystack(request);
     }
 
-    // @KafkaListener(topics = "withdrawals")
-    // public void consume(String payload) throws Exception {
+  @KafkaListener(topics = "withdrawals")
+public void consume(String payload) {
 
-    //     PaystackWithdrawalRequest request = objectMapper.readValue(payload, PaystackWithdrawalRequest.class);
+    try {
+        log.info("Received payload: {}", payload);
 
-    //     withdrawFromPaystack(request);
-    // }
+        PaystackWithdrawalRequest request =
+                objectMapper.readValue(payload, PaystackWithdrawalRequest.class);
+
+        log.info("Amount: {}", request.getAmount());
+        log.info("Reference: {}", request.getReference());
+
+    } catch (Exception e) {
+        log.error("Error consuming message", e);
+        throw new RuntimeException(e);
+    }
+}
 }

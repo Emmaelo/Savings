@@ -1,5 +1,12 @@
 server:
   port: 8082
+rabbitmq:
+  queue:
+    name: withdrawal_queue
+  exchange:
+    name: withdrawal_exchange
+  routing:
+    key: withdrawal_routing_key
 
 spring:
   rabbitmq:
