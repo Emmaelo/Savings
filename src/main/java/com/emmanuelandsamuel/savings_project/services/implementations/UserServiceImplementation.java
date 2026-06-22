@@ -6,6 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import com.emmanuelandsamuel.savings_project.dtos.requests.GroupSearchRequest;
@@ -31,10 +32,7 @@ public class UserServiceImplementation implements UserService {
         private final GroupRepository groupRepository;
 
         public List<BankListResponse> getUsersBanks() {
-                // String email =
-                // SecurityContextHolder.getContext().getAuthentication().getName();
-
-                String email = "emmanuelezeuchegbu@gmail.com";
+                String email = SecurityContextHolder.getContext().getAuthentication().getName();
 
                 return userBankAccountRepositories.findByUserEmail(email)
                                 .stream()
@@ -47,9 +45,7 @@ public class UserServiceImplementation implements UserService {
         }
 
         public List<UserGroupResponse> getUsersGroups() {
-                // String email =
-                // SecurityContextHolder.getContext().getAuthentication().getName();
-                String email = "emmanuel@gmail.com";
+                String email = SecurityContextHolder.getContext().getAuthentication().getName();
 
                 List<GroupMember> memberships = groupMemberRepository.findUserGroups(email);
 
@@ -76,6 +72,10 @@ public class UserServiceImplementation implements UserService {
 
                                         return UserGroupResponse.builder()
                                                         .groupName(m.getGroup().getName())
+                                                        .currentMemberCount(m.getGroup().getCurrentMemberCount())
+                                                        .memberCount(m.getGroup().getMemberCount())
+                                                        .guaranteeRequired(m.getGroup().isGuaranteeRequired())
+                                                        .paidCurrentCycle(m.isPaidCurrentCycle())
                                                         .groupCode(m.getGroupCode())
                                                         .amountToSave(m.getGroup().getAmountToSave())
                                                         .groupStatus(

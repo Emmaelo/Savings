@@ -48,15 +48,12 @@ public class GroupContributionServiceImplementation implements GroupContribution
         private final CompanyWalletLedgerRepository companyWalletLedgerRepository;
         private final UserWalletLedgerRepository userWalletLedgerRepository;
         private final GroupClosureRequestRepository groupClosureRequestRepository;
-       
 
         @Transactional
         @Override
         public String payContribution(String groupCode) {
 
-                // String email =
-                // SecurityContextHolder.getContext().getAuthentication().getName();
-                String email = "emmanuelezeuchegbu@gmail.com";
+                String email = SecurityContextHolder.getContext().getAuthentication().getName();
 
                 UserWallet wallet = userWalletRepository.findByUserEmailForUpdate(email)
                                 .orElseThrow(() -> new WalletNotFoundException("User wallet not found"));
@@ -107,7 +104,7 @@ public class GroupContributionServiceImplementation implements GroupContribution
                                                 .entryType(LedgerEntryType.DEBIT)
                                                 .fee(BigDecimal.ZERO)
                                                 .email(email)
-                                                .source("Group Contribution to " + groupCode)
+                                                .source("GROUP_CONTRIBUTE_TO " + groupCode)
                                                 .build());
 
                 groupWalletLedgerRepository.save(
@@ -132,9 +129,7 @@ public class GroupContributionServiceImplementation implements GroupContribution
         @Transactional
         @Override
         public String processNextCycle(String groupCode) {
-                // String email =
-                // SecurityContextHolder.getContext().getAuthentication().getName();
-                String email = "ezeuchegbu@gmail.com";
+                String email = SecurityContextHolder.getContext().getAuthentication().getName();
 
                 Group group = groupRepository.findByGroupCodeForUpdate(groupCode)
                                 .orElseThrow(() -> new ApplicationException("Group not found"));
@@ -143,7 +138,7 @@ public class GroupContributionServiceImplementation implements GroupContribution
                         return "Only the group creator can process Next Cycle.";
                 }
 
-                if (group.getGroupStatus() == GroupStatus.CLOSED || group.getGroupStatus() == GroupStatus.INACTIVE) {
+                if (group.getGroupStatus() != GroupStatus.ACTIVE) {
                         return "Group is Suspended or Inactive.. Contact Customer Support";
                 }
 
@@ -188,7 +183,7 @@ public class GroupContributionServiceImplementation implements GroupContribution
                         if (groupClosureRequest) {
                                 deleteVotes(groupCode);
                                 group.setGroupStatus(GroupStatus.CLOSED);
-                                return "Group temporary closed";
+                                return "Group closed";
                         }
 
                         nextIndex = 1;
@@ -285,9 +280,7 @@ public class GroupContributionServiceImplementation implements GroupContribution
 
         public String requestOrRemoveClosure(String groupCode) {
 
-                // String email =
-                // SecurityContextHolder.getContext().getAuthentication().getName();
-                String email = "emmanuelezeuchegbu@gmail.com";
+                String email = SecurityContextHolder.getContext().getAuthentication().getName();
 
                 Group group = groupRepository.findByGroupCode(groupCode)
                                 .orElseThrow(() -> new ApplicationException("Group not found"));
@@ -318,9 +311,7 @@ public class GroupContributionServiceImplementation implements GroupContribution
 
         @Transactional
         public String fundGuaranteeBalance(GuaranteeBalanceRequest request) {
-                // String email =
-                // SecurityContextHolder.getContext().getAuthentication().getName();
-                String email = "emmanuelezeuchegbu@gmail.com";
+                String email = SecurityContextHolder.getContext().getAuthentication().getName();
 
                 UserWallet wallet = userWalletRepository.findByUserEmailForUpdate(email)
                                 .orElseThrow(() -> new WalletNotFoundException("User wallet not found"));
@@ -342,12 +333,18 @@ public class GroupContributionServiceImplementation implements GroupContribution
 
                 groupRepository.save(group);
                 userWalletRepository.save(wallet);
-                userWalletLedgerRepository.save(UserWalletLedger.builder().amount(request.getAmount())
-                                .entryType(LedgerEntryType.DEBIT).email(email).fee(BigDecimal.ZERO)
+                userWalletLedgerRepository.save(UserWalletLedger.builder()
+                                .walletId(wallet.getId())
+                                .amount(request.getAmount())
+                                .entryType(LedgerEntryType.DEBIT)
+                                .email(email)
+                                .source("GUARANTEE_BALANCE")
+                                .fee(BigDecimal.ZERO)
                                 .balanceAfter(wallet.getAvailableBalance())
                                 .build());
 
-                return "Sucess !!!";
+                return "Guarantee balance funded";
         }
+
 
 }

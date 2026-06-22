@@ -19,6 +19,17 @@ public interface UserWalletRepository extends JpaRepository<UserWallet, UUID> {
 @Query("SELECT w FROM UserWallet w WHERE w.user.email = :email")
 Optional<UserWallet> findByUserEmailForUpdate(String email);
 
+
+@Lock(LockModeType.PESSIMISTIC_WRITE)
+@Query("""
+    SELECT w 
+    FROM UserWallet w 
+    WHERE w.user.email = :identifier 
+       OR w.user.phoneNumber = :identifier
+    """)
+Optional<UserWallet> findByEmailOrPhoneForUpdate(String identifier);
+
+
 Optional<UserWallet> findByUserEmail(String email);
 
 }

@@ -29,7 +29,6 @@ import lombok.RequiredArgsConstructor;
 
 import java.util.Arrays;
 
-
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
@@ -37,7 +36,8 @@ public class SecurityConfiguration {
     private final JwtAuthEntryPoint authEntryPoint;
 
     @Bean
-    public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http,JWTAuthenticationFilter jwtAuthenticationFilter)throws Exception {
+    public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http,
+            JWTAuthenticationFilter jwtAuthenticationFilter) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
@@ -50,14 +50,17 @@ public class SecurityConfiguration {
                                 "/api/email/verify-verification-code",
                                 "/api/user/register",
                                 "/api/user/login",
+                                "/api/login2",
+                                "/api/register",
+                                "/api/v1/transactions/verify-transaction/{paystackReference}",
                                 "/api/payments/paystack/webhook",
+                                "/api/payments/paystack/update",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
                                 "/actuator/health")
                         .permitAll()
-                        .anyRequest().permitAll()
-                // .authenticated()
-                );
+                        .anyRequest()
+                        .authenticated());
 
         return http.build();
 
@@ -96,7 +99,6 @@ public class SecurityConfiguration {
         return new JWTAuthenticationFilter(jwtGenerator, userDetailsServices);
     }
 
-
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
@@ -112,16 +114,15 @@ public class SecurityConfiguration {
         return source;
     }
 
-
     @Bean
-public AuthenticationProvider authenticationProvider(
-        CustomUserDetailsServices userDetailsService,
-        PasswordEncoder passwordEncoder) {
+    public AuthenticationProvider authenticationProvider(
+            CustomUserDetailsServices userDetailsService,
+            PasswordEncoder passwordEncoder) {
 
-    DaoAuthenticationProvider provider =new DaoAuthenticationProvider(userDetailsService);
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
 
-    provider.setPasswordEncoder(passwordEncoder);
+        provider.setPasswordEncoder(passwordEncoder);
 
-    return provider;
-}
+        return provider;
+    }
 }

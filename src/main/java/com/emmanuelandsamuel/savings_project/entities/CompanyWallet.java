@@ -1,29 +1,19 @@
 package com.emmanuelandsamuel.savings_project.entities;
 
+import java.math.BigDecimal;
 
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 @Entity
 @Data
-@NoArgsConstructor
-@Builder
-@AllArgsConstructor
-public class GroupClosureRequest {
+public class CompanyWallet {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
+    private BigDecimal balance;
 
-    @Column(unique = false)
-    private String  groupCode;
-
-    @Column(unique = true)
-    private String userEmail;
 }

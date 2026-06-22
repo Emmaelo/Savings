@@ -44,6 +44,9 @@ public class UserWallet extends BaseEntity {
     @Column(nullable = false, unique = true)
     private String userEmail;
 
+    @Column(nullable = false, unique = true)
+    private String phoneNumber;
+
     @OneToOne(mappedBy = "userWallet")
     private UserEntity user;
 }

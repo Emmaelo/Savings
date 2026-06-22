@@ -21,4 +21,6 @@ public class Banks {
     private String slug;
 
     private boolean active;
+
+    private String recipientCode;
 }

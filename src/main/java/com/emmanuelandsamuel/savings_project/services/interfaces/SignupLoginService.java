@@ -12,4 +12,5 @@ public interface SignupLoginService {
     // ApiResponse<LoginResponse> loginUser(String idempotencyKey, UserLoginRequest userLoginRequest);
 
    ApiResponse <LoginResponse> loginUser2(UserLoginRequest userLoginRequest);
+   ApiResponse<String> registerUser2(UserRegistrationRequest request);
 }

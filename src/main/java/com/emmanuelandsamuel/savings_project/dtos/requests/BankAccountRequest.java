@@ -9,5 +9,5 @@ public class BankAccountRequest {
     private String accountNumber; 
     private String bankCode;
     private String bankName;
-    private String pin;
+    private String name;
 }

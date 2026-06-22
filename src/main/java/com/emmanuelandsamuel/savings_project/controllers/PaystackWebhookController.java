@@ -56,6 +56,14 @@ public class PaystackWebhookController {
 
     }
 
+      @Operation(summary = "Update bank list")
+      @GetMapping("/update")
+    public  ResponseEntity <ApiResponse<String>> updatebankList(){
+         paystackClient.syncBanksFromPaystack();
+        return ResponseEntity.ok().body(new ApiResponse<>(true, "success"));
+
+    }
+
 
 
 

@@ -26,54 +26,68 @@ import static com.emmanuelandsamuel.savings_project.utilities.AppExtensions.IDEM
 public class SignupLoginController {
 
     /*
-    Use this url to lauch swagger ui: http://localhost:8080/swagger-ui/index.html
+     * Use this url to lauch swagger ui: http://localhost:8080/swagger-ui/index.html
      */
 
     private final SignupLoginService signupLoginService;
 
-    // @Operation(summary = "Create an account", description = "Registers a new user account with the provided details. The registration process includes sending a verification email to the user's email address. The user must verify their email before they can register.")
+    // @Operation(summary = "Create an account", description = "Registers a new user
+    // account with the provided details. The registration process includes sending
+    // a verification email to the user's email address. The user must verify their
+    // email before they can register.")
     // @ApiResponses(value = {
-    //         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "User registered successfully",
-    //                 content = @Content(schema = @Schema(implementation = ApiResponse.class))),
-    //         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid request data",
-    //                 content = @Content(schema = @Schema(implementation = ApiResponse.class)))
+    // @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200",
+    // description = "User registered successfully",
+    // content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+    // @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400",
+    // description = "Invalid request data",
+    // content = @Content(schema = @Schema(implementation = ApiResponse.class)))
     // })
     // @PostMapping("/register")
-    // public ResponseEntity<ApiResponse<String>> registerUser(@RequestHeader(IDEMPOTENCY_KEY_HEADER) String idempotencyKey,
-    //                                                         @Valid @RequestBody UserRegistrationRequest userRegistrationRequest) {
+    // public ResponseEntity<ApiResponse<String>>
+    // registerUser(@RequestHeader(IDEMPOTENCY_KEY_HEADER) String idempotencyKey,
+    // @Valid @RequestBody UserRegistrationRequest userRegistrationRequest) {
 
-    //     ApiResponse<String> apiResponse = userService.registerUser(idempotencyKey, userRegistrationRequest);
+    // ApiResponse<String> apiResponse = userService.registerUser(idempotencyKey,
+    // userRegistrationRequest);
 
-    //     if (!apiResponse.isSuccessful())
-    //         return ResponseEntity.badRequest().body(apiResponse);
+    // if (!apiResponse.isSuccessful())
+    // return ResponseEntity.badRequest().body(apiResponse);
 
-    //     return ResponseEntity.ok(apiResponse);
-
+    // return ResponseEntity.ok(apiResponse);
 
     // }
 
-    // @Operation(summary = "Login to your account", description = "Authenticates a user with their email and password. If the credentials are valid, the user will receive an authentication token that can be used for subsequent requests to protected endpoints.")
+    // @Operation(summary = "Login to your account", description = "Authenticates a
+    // user with their email and password. If the credentials are valid, the user
+    // will receive an authentication token that can be used for subsequent requests
+    // to protected endpoints.")
     // @ApiResponses(value = {
-    //         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Login successful.",
-    //                 content = @Content(schema = @Schema(implementation = ApiResponse.class))),
-    //         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid request data.",
-    //                 content = @Content(schema = @Schema(implementation = ApiResponse.class)))
+    // @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200",
+    // description = "Login successful.",
+    // content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+    // @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400",
+    // description = "Invalid request data.",
+    // content = @Content(schema = @Schema(implementation = ApiResponse.class)))
     // })
     // @PostMapping("/login")
-    // public ResponseEntity<ApiResponse<LoginResponse>> loginUser(@RequestHeader(IDEMPOTENCY_KEY_HEADER) String idempotencyKey,
-    //                                                         @Valid @RequestBody UserLoginRequest userLoginRequest) {
+    // public ResponseEntity<ApiResponse<LoginResponse>>
+    // loginUser(@RequestHeader(IDEMPOTENCY_KEY_HEADER) String idempotencyKey,
+    // @Valid @RequestBody UserLoginRequest userLoginRequest) {
 
-    //     ApiResponse<LoginResponse> apiResponse = signupLoginService.loginUser(idempotencyKey, userLoginRequest);
+    // ApiResponse<LoginResponse> apiResponse =
+    // signupLoginService.loginUser(idempotencyKey, userLoginRequest);
 
-    //     if (!apiResponse.isSuccessful())
-    //         return ResponseEntity.badRequest().body(apiResponse);
+    // if (!apiResponse.isSuccessful())
+    // return ResponseEntity.badRequest().body(apiResponse);
 
-    //     return ResponseEntity.ok(apiResponse);
+    // return ResponseEntity.ok(apiResponse);
     // }
 
-      @PostMapping("/login2")
-       @Operation(summary = "Login to your account 2", description = "Authenticates a user with their email and password. ")
-    public ResponseEntity<ApiResponse<LoginResponse>> loginUser2(@Valid @RequestBody UserLoginRequest userLoginRequest) {
+    @PostMapping("/login2")
+    @Operation(summary = "Login to your account 2", description = "Authenticates a user with their email and password. ")
+    public ResponseEntity<ApiResponse<LoginResponse>> loginUser2(
+            @Valid @RequestBody UserLoginRequest userLoginRequest) {
 
         ApiResponse<LoginResponse> apiResponse = signupLoginService.loginUser2(userLoginRequest);
 
@@ -81,5 +95,12 @@ public class SignupLoginController {
             return ResponseEntity.badRequest().body(apiResponse);
 
         return ResponseEntity.ok(apiResponse);
+    }
+
+    @PostMapping("/register")
+    @Operation(summary = "Register your account 2", description = "Register a User. ")
+    public ResponseEntity<ApiResponse<String>> registerUser2(@RequestBody UserRegistrationRequest request) {
+        return ResponseEntity.ok().body(signupLoginService.registerUser2(request));
+
     }
 }

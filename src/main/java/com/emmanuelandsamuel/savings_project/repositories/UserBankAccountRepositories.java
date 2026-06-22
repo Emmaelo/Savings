@@ -11,6 +11,7 @@ import com.emmanuelandsamuel.savings_project.entities.UserBankAccount;
 @SuppressWarnings("NullableProblems")
 public interface UserBankAccountRepositories extends JpaRepository<UserBankAccount, Long>{
     List<UserBankAccount>findByUserEmail(String email);
-    boolean existsByUserEmailAndAccountNumberAndBankCode(String email, String bankName, String bankCode);
+    boolean existsByUserEmailAndAccountNumberAndBankCode(String email, String accountNumber, String bankCode);
+    boolean existsByUserEmailAndAccountNumberAndRecipientCode(String email, String accountNumber, String recipientCode);
 
 }

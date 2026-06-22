@@ -2,8 +2,6 @@ package com.emmanuelandsamuel.savings_project.dtos.requests;
 
 import java.math.BigDecimal;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -25,5 +23,9 @@ public class WithdrawalRequest {
     private String accountNumber;
     
     private String bankCode;
+
+    private String bankName;
+
+    private String recipientCode;
 
 }

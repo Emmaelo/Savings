@@ -48,4 +48,7 @@ public class UserBankAccount extends BaseEntity{
 
     @Column(nullable = false)
     private String userEmail;
+
+    @Column(nullable = false)
+    private String recipientCode;
 }

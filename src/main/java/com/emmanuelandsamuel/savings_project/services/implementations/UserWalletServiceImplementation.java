@@ -1,13 +1,17 @@
 package com.emmanuelandsamuel.savings_project.services.implementations;
 
 import com.emmanuelandsamuel.savings_project.dtos.requests.BankAccountRequest;
+import com.emmanuelandsamuel.savings_project.dtos.requests.PaystackRecipientCodeRequest;
+import com.emmanuelandsamuel.savings_project.dtos.responses.PaystackRecipientCodeResponse;
 import com.emmanuelandsamuel.savings_project.entities.UserEntity;
 import com.emmanuelandsamuel.savings_project.entities.UserBankAccount;
-import com.emmanuelandsamuel.savings_project.entities.UserWallet; 
+import com.emmanuelandsamuel.savings_project.entities.UserWallet;
 import com.emmanuelandsamuel.savings_project.repositories.UserBankAccountRepositories;
 import com.emmanuelandsamuel.savings_project.repositories.UserRepository;
 import com.emmanuelandsamuel.savings_project.repositories.UserWalletRepository;
 import com.emmanuelandsamuel.savings_project.services.interfaces.UserWalletService;
+import com.emmanuelandsamuel.savings_project.utilities.PaystackClient;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import java.util.List;
@@ -28,10 +32,11 @@ public class UserWalletServiceImplementation implements UserWalletService {
     private final UserBankAccountRepositories userBankAccountRepositories;
     private final UserWalletRepository userWalletRepository;
     private final PasswordEncoder passwordEncoder;
+    private final PaystackClient paystackClient;
 
     @Transactional(propagation = Propagation.MANDATORY)
     @Override
-    public void createUserWallet(String email) {
+    public void createUserWallet(String email, String phoneNumber) {
 
         try {
 
@@ -39,7 +44,9 @@ public class UserWalletServiceImplementation implements UserWalletService {
                     .findByEmailIgnoreCase(email)
                     .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
 
-            UserWallet userWallet = UserWallet.builder().userEmail(email).build();
+            UserWallet userWallet = UserWallet.builder()
+            .userEmail(email)
+            .build();
 
             user.setUserWallet(userWallet);
 
@@ -56,10 +63,7 @@ public class UserWalletServiceImplementation implements UserWalletService {
 
     @Override
     public String addBankAccount(BankAccountRequest request) {
-        // String email =
-        // SecurityContextHolder.getContext().getAuthentication().getName();
-
-        String email = "emmanuelezeuchegbu@gmail.com";
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
 
         List<UserBankAccount> userBankAccount = userBankAccountRepositories.findByUserEmail(email);
 
@@ -72,9 +76,15 @@ public class UserWalletServiceImplementation implements UserWalletService {
             return " Account already exists";
         }
 
-        UserWallet userWallet = userWalletRepository.findByUserEmail(email).orElse(null);
-        if(userWallet.getSecretPin() == null || !passwordEncoder.matches(request.getPin(), userWallet.getSecretPin())){
-            return "Invalid Pin";
+        PaystackRecipientCodeRequest recipientCodeRequest = new PaystackRecipientCodeRequest();
+        recipientCodeRequest.setAccount_number(request.getAccountNumber());
+        recipientCodeRequest.setName(request.getName());
+        recipientCodeRequest.setBank_code(request.getBankCode());
+
+        PaystackRecipientCodeResponse response = paystackClient.creaRecipientCode(recipientCodeRequest);
+
+        if (response == null || !response.isStatus()) {
+            return "Unable to create recipient code";
         }
 
         userBankAccountRepositories.save(UserBankAccount.builder()
@@ -82,26 +92,22 @@ public class UserWalletServiceImplementation implements UserWalletService {
                 .bankCode(request.getBankCode())
                 .bankName(request.getBankName())
                 .userEmail(email)
+                .recipientCode(response.getData().getRecipient_code())
                 .build());
 
         return "Account number added...";
 
     }
 
-
-
     @Override
     public String addSecretPin(String pin) {
-        // String email =
-        // SecurityContextHolder.getContext().getAuthentication().getName();
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
 
-        String email = "emmanuel@gmail.com";
+        Optional<UserWallet> userWallet = userWalletRepository.findByUserEmail(email);
+        if (userWallet.isEmpty()) {
+            return "User Not Found";
+        }
 
-       Optional< UserWallet> userWallet = userWalletRepository.findByUserEmail(email);
-       if(userWallet.isEmpty()){
-        return "User Not Found";
-       }
-    
         userWallet.get().setSecretPin(passwordEncoder.encode(pin.trim()));
         userWalletRepository.save(userWallet.get());
 
